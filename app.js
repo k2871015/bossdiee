@@ -20,6 +20,7 @@ let lastHitTime = 0;
 // Upgraded Mechanics State
 let stressPoints = 0;
 let isFeverMode = false;
+let gameState = STATE_CUSTOMIZING;
 
 // Customization Info
 let bossInfo = {
@@ -238,7 +239,9 @@ window.addEventListener('DOMContentLoaded', () => {
  * Game State Switcher
  */
 function setGameState(state) {
-  elBody.className = state;
+  gameState = state;
+  elBody.classList.remove(STATE_CUSTOMIZING, STATE_PLAYING, STATE_VICTORY);
+  elBody.classList.add(state);
   
   if (state === STATE_CUSTOMIZING) {
     elEditBossBtn.style.display = 'none';
@@ -345,7 +348,7 @@ function startGame(event) {
   elBossSpeech.textContent = bossInfo.quote;
   elBossSpeech.classList.add('show');
   setTimeout(() => {
-    if (elBody.className === STATE_PLAYING) {
+    if (gameState === STATE_PLAYING) {
       elBossSpeech.classList.remove('show');
     }
   }, 3500);
@@ -367,7 +370,7 @@ window.startGame = startGame;
  * Handle Target Whacking Clicks
  */
 function handleBossClick(e) {
-  if (elBody.className !== STATE_PLAYING) return;
+  if (gameState !== STATE_PLAYING) return;
 
   const now = Date.now();
   const weapon = WEAPONS[activeWeapon];
@@ -529,7 +532,7 @@ function updateShopUI() {
  * Upgraded Weapon Level up purchase handler
  */
 function upgradeWeapon(weaponType) {
-  if (elBody.className !== STATE_PLAYING) return;
+  if (gameState !== STATE_PLAYING) return;
   
   const lvl = weaponUpgrades[weaponType];
   const cost = Math.round(UPGRADE_COSTS[weaponType] * Math.pow(1.5, lvl - 1));
@@ -575,19 +578,27 @@ function deactivateFever() {
  * Trigger boss avatar visual hits
  */
 function triggerBossHitAnimation(animClass) {
+  // Remove all hit classes and force reflow so animation re-triggers on rapid clicks
   elBossAvatarWrapper.classList.remove('hit-light', 'hit-heavy', 'hit-splash');
-  elBossAvatarWrapper.offsetHeight; // trigger reflow
+  void elBossAvatarWrapper.offsetWidth; // force reflow
   elBossAvatarWrapper.classList.add(animClass);
 
+  // Auto-remove the class when animation finishes (allows re-triggering)
+  const onEnd = () => {
+    elBossAvatarWrapper.classList.remove(animClass);
+    elBossAvatarWrapper.removeEventListener('animationend', onEnd);
+  };
+  elBossAvatarWrapper.addEventListener('animationend', onEnd, { once: true });
+
   // Red tint flash filter on boss image
-  elBossImage.style.filter = 'brightness(1.2) sepia(1) hue-rotate(-50deg) saturate(3)';
+  elBossImage.style.filter = 'brightness(1.4) sepia(1) hue-rotate(-45deg) saturate(4) contrast(1.1)';
   setTimeout(() => {
-    if (elBody.className === STATE_VICTORY && bossInfo.customImg) {
+    if (gameState === STATE_VICTORY && bossInfo.customImg) {
       elBossImage.style.filter = 'grayscale(0.5) sepia(0.5) rotate(10deg)';
     } else {
       elBossImage.style.filter = 'none';
     }
-  }, 180);
+  }, animClass === 'hit-heavy' ? 280 : 160);
 }
 
 /**
@@ -749,7 +760,7 @@ function triggerBossSpeech(customText = null) {
     clearTimeout(window.speechTimeout);
   }
   window.speechTimeout = setTimeout(() => {
-    if (elBody.className === STATE_PLAYING) {
+    if (gameState === STATE_PLAYING) {
       elBossSpeech.classList.remove('show');
     }
   }, 2200);
@@ -760,7 +771,7 @@ let autoSpeechInterval = null;
 function startBossAutoSpeeches() {
   stopBossAutoSpeeches();
   autoSpeechInterval = setInterval(() => {
-    if (elBody.className === STATE_PLAYING && Math.random() < 0.7) {
+    if (gameState === STATE_PLAYING && Math.random() < 0.7) {
       const quotes = ARCHETYPE_QUOTES[bossInfo.type] || ARCHETYPE_QUOTES.konda;
       const speech = quotes[Math.floor(Math.random() * quotes.length)];
       triggerBossSpeech(speech);

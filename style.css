@@ -475,15 +475,17 @@ main {
   font-family: var(--font-sans);
   font-weight: 800;
   font-size: 1.1rem;
-  text-shadow: 0 0 8px rgba(0,0,0,0.8);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.9), 0 0 20px currentColor;
   pointer-events: none;
-  animation: floatTextUp 0.8s forwards cubic-bezier(0.16, 1, 0.3, 1);
+  animation: floatTextUp 0.9s forwards cubic-bezier(0.22, 1, 0.36, 1);
   white-space: nowrap;
 }
 @keyframes floatTextUp {
-  0% { transform: translateY(0) scale(0.6); opacity: 0; }
-  20% { opacity: 1; transform: translateY(-10px) scale(1.1); }
-  100% { transform: translateY(-60px) scale(0.85); opacity: 0; }
+  0%   { transform: translateY(0) scale(0.4) rotate(-4deg); opacity: 0; }
+  12%  { transform: translateY(-8px) scale(1.3) rotate(2deg); opacity: 1; }
+  35%  { transform: translateY(-22px) scale(1.1) rotate(-1deg); opacity: 1; }
+  70%  { transform: translateY(-50px) scale(0.95) rotate(0.5deg); opacity: 0.7; }
+  100% { transform: translateY(-80px) scale(0.7) rotate(0deg); opacity: 0; }
 }
 
 /* Splat visuals */
@@ -492,15 +494,17 @@ main {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: radial-gradient(circle, #5b3e24 0%, rgba(91, 62, 36, 0) 70%);
-  opacity: 0.75;
+  background: radial-gradient(circle, #a0682a 0%, rgba(91, 62, 36, 0.5) 50%, rgba(91, 62, 36, 0) 70%);
+  opacity: 0;
   pointer-events: none;
-  transform: scale(0.5);
-  animation: explodeSplat 0.5s forwards ease-out;
+  animation: elasticSplat 0.65s forwards cubic-bezier(0.22, 1, 0.36, 1);
 }
-@keyframes explodeSplat {
-  0% { transform: scale(0.5); opacity: 0.9; }
-  100% { transform: scale(1.6); opacity: 0; }
+@keyframes elasticSplat {
+  0%   { transform: scale(0.2); opacity: 0.95; border-radius: 50%; }
+  22%  { transform: scale(1.7) scaleX(1.3) scaleY(0.8); opacity: 0.85; border-radius: 40%; }
+  45%  { transform: scale(1.4) scaleX(0.9) scaleY(1.15); opacity: 0.7; border-radius: 45%; }
+  70%  { transform: scale(1.6) scaleX(1.05) scaleY(0.97); opacity: 0.4; border-radius: 50%; }
+  100% { transform: scale(2.0); opacity: 0; border-radius: 50%; }
 }
 
 /* Avatar wrappers */
@@ -511,43 +515,60 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+}
+.boss-avatar-wrapper:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 15px 30px rgba(255, 71, 87, 0.15));
+}
+.boss-avatar-wrapper:active {
+  transform: scale(0.96);
 }
 .boss-img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: filter 0.15s ease;
+  transition: filter 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.2s ease;
 }
 
 /* Whacking effects */
 .boss-avatar-wrapper.hit-light {
-  animation: jiggleLight 0.15s ease;
+  animation: elasticJiggleLight 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 .boss-avatar-wrapper.hit-heavy {
-  animation: spinHit 0.35s ease;
+  animation: elasticSpinHit 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .boss-avatar-wrapper.hit-splash {
-  animation: shakeHeavy 0.25s ease;
+  animation: elasticShakeHeavy 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 
-@keyframes jiggleLight {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(0.92) rotate(-5deg); }
-  75% { transform: scale(1.05) rotate(5deg); }
+@keyframes elasticJiggleLight {
+  0% { transform: scale(1) rotate(0deg); }
+  15% { transform: scale(0.88) rotate(-6deg); }
+  35% { transform: scale(1.08) rotate(4deg); }
+  55% { transform: scale(0.96) rotate(-2deg); }
+  75% { transform: scale(1.02) rotate(1deg); }
+  100% { transform: scale(1) rotate(0deg); }
 }
-@keyframes spinHit {
-  0% { transform: scale(1) rotate(0); }
-  30% { transform: scale(0.7) rotate(-20deg) translateY(10px); }
-  70% { transform: scale(1.1) rotate(15deg); }
-  100% { transform: scale(1) rotate(0); }
+@keyframes elasticSpinHit {
+  0% { transform: scale(1) rotate(0deg) translateY(0); }
+  18% { transform: scale(0.72) rotate(-16deg) translateY(18px); }
+  38% { transform: scale(1.18) rotate(12deg) translateY(-12px); }
+  58% { transform: scale(0.92) rotate(-6deg) translateY(6px); }
+  78% { transform: scale(1.04) rotate(2deg) translateY(-2px); }
+  90% { transform: scale(0.98) rotate(-1deg) translateY(0); }
+  100% { transform: scale(1) rotate(0deg) translateY(0); }
 }
-@keyframes shakeHeavy {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  20% { transform: translate(-8px, 8px) scale(0.95); }
-  40% { transform: translate(8px, -8px) scale(1.08); }
-  60% { transform: translate(-8px, -8px) scale(0.97); }
-  80% { transform: translate(8px, 8px) scale(1.03); }
+@keyframes elasticShakeHeavy {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  12.5% { transform: translate(-10px, 8px) scale(0.93) rotate(-4deg); }
+  25% { transform: translate(8px, -8px) scale(1.13) rotate(3.5deg); }
+  37.5% { transform: translate(-7px, 6px) scale(0.96) rotate(-2.5deg); }
+  50% { transform: translate(5px, -4px) scale(1.06) rotate(1.8deg); }
+  62.5% { transform: translate(-3px, 2px) scale(0.98) rotate(-1deg); }
+  75% { transform: translate(2px, -1px) scale(1.02) rotate(0.5deg); }
+  87.5% { transform: translate(-1px, 0.5px) scale(0.99) rotate(-0.2deg); }
+  100% { transform: translate(0, 0) scale(1) rotate(0deg); }
 }
 
 /* Dizzy stars above boss */
