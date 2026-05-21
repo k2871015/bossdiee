@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>스트레스 제로! 부장님 격파 Web Game</title>
+  <meta name="description" content="고집불통 말 안 듣는 부장님에게 서류 뭉치와 토이 해머를 날려 스트레스를 날려버리세요. Web Audio API로 구현된 리얼 사운드 타격 웹게임.">
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Font: Outfit & Noto Sans KR -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="customizing-mode">
+
+  <!-- Floating particles background -->
+  <div class="particles" id="particles-container"></div>
+
+  <!-- Header Nav -->
+  <header>
+    <div class="nav-container">
+      <div class="logo">
+        <span class="logo-icon">💥</span>
+        STRESS BUSTER
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="bgm-toggle-btn">🔇 BGM 끔</button>
+        <button class="icon-btn" id="edit-boss-btn" style="display: none;">⚙️ 부장님 재설정</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- 1. Customizer screen (Overlay setup panel) -->
+    <section class="screen-panel" id="customizer-panel">
+      <div class="setup-card">
+        <div class="setup-header">
+          <div class="badge">🔥 STRESS RELIEVER</div>
+          <h2>지긋지긋한 업무 스트레스!<br>부장님 프로필 설정</h2>
+          <p>오늘 나에게 야근을 권유했거나, 말을 지독히 안 들어먹는 그 사람의 정보를 입력하세요. (재미를 위한 가상 공간입니다)</p>
+        </div>
+        
+        <form id="setup-form" onsubmit="startGame(event)">
+          <div class="form-group">
+            <label class="input-label" for="boss-name">타겟 부장님 이름</label>
+            <input type="text" id="boss-name" class="text-input" placeholder="예: 김꼰대 부장" required autocomplete="off">
+          </div>
+          
+          <div class="form-group">
+            <label class="input-label" for="boss-type">부장님 유형 선택</label>
+            <select id="boss-type" class="text-input select-input">
+              <option value="micromanager">마이크로 매니저 (사사건건 간섭형)</option>
+              <option value="konda">꼰대 끝판왕 (라떼는 말이야형)</option>
+              <option value="indecisive">우유부단 결정장애 (도돌이표형)</option>
+              <option value="angry">버럭버럭 분노조절장애 (고함형)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="input-label" for="boss-quote">자주 하는 고집 발언 (명대사)</label>
+            <select id="boss-quote" class="text-input select-input">
+              <option value="quote1">"오늘 야근 다들 가능하지? 내일 아침 보고야."</option>
+              <option value="quote2">"라떼는 말이야, 주말 반납하고 일하는 게 자랑이었어."</option>
+              <option value="quote3">"이게 최선인가? 다시 해와! 처음부터 다시."</option>
+              <option value="quote4">"일단 내 말대로 해봐. 왜 이렇게 불만이 많아?"</option>
+              <option value="quote5">"그건 김대리가 알아서 판단하고, 나한테 보고서만 가져와."</option>
+            </select>
+            <input type="text" id="boss-custom-quote" class="text-input" placeholder="또는 직접 입력하고 싶은 멘트를 적으세요" style="margin-top: 0.5rem;" autocomplete="off">
+          </div>
+
+          <button type="submit" class="action-btn" id="start-game-btn">
+            💥 스트레스 격파 시작
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 2. Gameplay Area (Grid layout hidden by default) -->
+    <section class="gameplay-grid" id="gameplay-panel" style="display: none;">
+      
+      <!-- Left HUD Dashboard: Player stats -->
+      <div class="hud-sidebar glass-panel">
+        <div class="hud-section">
+          <h3>스트레스 진단계</h3>
+          <div class="stats-card">
+            <div class="stat-row">
+              <span class="stat-label">나의 심박수</span>
+              <span class="stat-value text-red" id="heart-rate">80 BPM</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">해소된 스트레스</span>
+              <span class="stat-value text-gold" id="relieved-score">0%</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">날린 서류 조각</span>
+              <span class="stat-value text-cyan" id="total-hits">0회</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hud-section">
+          <h3>사원증</h3>
+          <div class="id-card">
+            <div class="id-avatar">💼</div>
+            <div class="id-info">
+              <div class="id-name">김 대 리</div>
+              <div class="id-dept">야근거부대책반</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hud-section">
+          <h3>격파 팁</h3>
+          <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5;">
+            - 🧻 <strong>종이 뭉치</strong>: 빠르게 난사하여 콤보를 올려보세요!<br>
+            - 🔨 <strong>뿅망치</strong>: 큰 데미지와 함께 부장님이 어질어질 돌며 정신을 못 차립니다.<br>
+            - ☕ <strong>에스프레소</strong>: 뜨겁게 끼얹어 순간적으로 고집 수치 차단을 유발합니다.<br>
+            - 📄 <strong>사직서 투척</strong>: 쿨타임이 존재하지만 가장 치명적인 데미지를 가합니다.
+          </p>
+        </div>
+      </div>
+
+      <!-- Center: Active Arena (Interactive Boss Visual) -->
+      <div class="arena-panel glass-panel">
+        <!-- Target Info & Health Bar -->
+        <div class="arena-header">
+          <div class="boss-display-info">
+            <span class="boss-class-badge" id="hud-boss-badge">꼰대형 부장님</span>
+            <h2 id="hud-boss-name">김꼰대 부장</h2>
+          </div>
+          <div class="health-container">
+            <div class="health-label">
+              <span>고집 방어막</span>
+              <span id="health-percentage">100%</span>
+            </div>
+            <div class="health-bar-bg">
+              <div class="health-bar-fill" id="health-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Avatar Area -->
+        <div class="avatar-view-container" id="boss-target-area">
+          <!-- Boss Dialogue speech bubble -->
+          <div class="boss-bubble" id="boss-speech">
+            "어이 김대리, 오늘 야근 가능하지?"
+          </div>
+
+          <!-- Splatters and hit elements container -->
+          <div class="hit-effects-layer" id="hit-effects-layer"></div>
+
+          <!-- Boss Avatar Card -->
+          <div class="boss-avatar-wrapper" id="boss-avatar-wrapper">
+            <img src="assets/boss_angry.png" alt="Angry Boss" id="boss-image" class="boss-img">
+            <div class="dizzy-stars-overlay" id="dizzy-stars">✨💫✨</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Weapon wheel / Inventory Slots -->
+      <div class="weapons-sidebar glass-panel">
+        <h3>스트레스 해소 툴</h3>
+        <div class="weapon-slots">
+          
+          <div class="weapon-card active" data-weapon="paper" id="weapon-paper">
+            <div class="weapon-icon">🧻</div>
+            <div class="weapon-details">
+              <h4>종이 뭉치 날리기</h4>
+              <span class="weapon-desc">데미지: 5 | 딜레이: 없음</span>
+            </div>
+            <span class="weapon-select-dot"></span>
+          </div>
+
+          <div class="weapon-card" data-weapon="hammer" id="weapon-hammer">
+            <div class="weapon-icon">🔨</div>
+            <div class="weapon-details">
+              <h4>토이 뿅망치 whacking</h4>
+              <span class="weapon-desc">데미지: 15 | 딜레이: 0.3s</span>
+            </div>
+            <span class="weapon-select-dot"></span>
+          </div>
+
+          <div class="weapon-card" data-weapon="coffee" id="weapon-coffee">
+            <div class="weapon-icon">☕</div>
+            <div class="weapon-details">
+              <h4>더블 에스프레소 투척</h4>
+              <span class="weapon-desc">데미지: 30 | 딜레이: 1.0s</span>
+            </div>
+            <span class="weapon-select-dot"></span>
+          </div>
+
+          <div class="weapon-card" data-weapon="resignation" id="weapon-resignation">
+            <div class="weapon-icon">📄</div>
+            <div class="weapon-details">
+              <h4>사직서 투하 (궁극기)</h4>
+              <span class="weapon-desc" id="cooldown-timer">데미지: 100 | 쿨타임: 10s</span>
+            </div>
+            <div class="cooldown-overlay" id="resignation-cooldown-overlay" style="width: 0%;"></div>
+            <span class="weapon-select-dot"></span>
+          </div>
+
+        </div>
+
+        <div class="combo-container">
+          <div class="combo-title">COMBO HITS</div>
+          <div class="combo-number" id="combo-count">0</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 3. Victory Screen (Stress Relieved Overlay Report Card) -->
+    <section class="screen-panel" id="victory-panel" style="display: none;">
+      <div class="victory-card">
+        <div class="victory-icon">🎉</div>
+        <h2>부장님 고집 격파 완료!</h2>
+        <h1 class="stress-free-banner">STRESS ZERO</h1>
+        
+        <div class="report-box">
+          <h3>스트레스 해소 진단 성적표</h3>
+          <div class="report-row">
+            <span>참교육 대상 부장</span>
+            <span id="report-boss-name" class="text-gold">김꼰대 부장</span>
+          </div>
+          <div class="report-row">
+            <span>총 참교육 횟수 (서류뭉치 등)</span>
+            <span id="report-total-hits" class="text-cyan">0회</span>
+          </div>
+          <div class="report-row">
+            <span>콤보 최고 기록</span>
+            <span id="report-max-combo" class="text-red">0 콤보</span>
+          </div>
+          <div class="report-row">
+            <span>부장님 상태</span>
+            <span class="text-green">사직서 결재 및 눈물 흘리는 중 😭</span>
+          </div>
+        </div>
+
+        <div class="victory-actions">
+          <button class="action-btn" onclick="resetGame()">↩️ 다른 부장님 소환하기</button>
+          <button class="action-btn btn-secondary" onclick="shareStressReport()">🔗 결과 복사 및 공유</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Sound notification toast -->
+  <div class="toast-notification" id="toast-notification"></div>
+
+  <!-- JavaScript Modules -->
+  <script src="audio.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
