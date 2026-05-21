@@ -163,6 +163,25 @@ let elBossCustomImg;
 let elShopPointsValue;
 let elFeverBanner;
 
+// New element selectors
+let elTearLeft;
+let elTearRight;
+let elPainEmoji;
+let elRandomEventOverlay;
+let elEventIcon;
+let elEventTitle;
+let elEventDesc;
+let elEventQuote;
+let elEventTimerFill;
+
+// Random Event State
+let randomEventTimeout = null;
+let activeEventEffect = null;
+let isInvincible = false;
+let damageMult = 1.0;
+let clickBlocked = false;
+let hpPhase = 'normal'; // 'normal' | 'warning' | 'danger'
+
 // Initialize script when DOM is loaded
 window.addEventListener('DOMContentLoaded', () => {
   // DOM Cache
@@ -191,6 +210,17 @@ window.addEventListener('DOMContentLoaded', () => {
   elBossCustomImg = document.getElementById('boss-custom-img');
   elShopPointsValue = document.getElementById('shop-points-value');
   elFeverBanner = document.getElementById('fever-banner');
+
+  // New event/pain elements
+  elTearLeft = document.getElementById('tear-left');
+  elTearRight = document.getElementById('tear-right');
+  elPainEmoji = document.getElementById('pain-emoji');
+  elRandomEventOverlay = document.getElementById('random-event-overlay');
+  elEventIcon = document.getElementById('event-icon');
+  elEventTitle = document.getElementById('event-title');
+  elEventDesc = document.getElementById('event-desc');
+  elEventQuote = document.getElementById('event-quote');
+  elEventTimerFill = document.getElementById('event-timer-fill');
 
   // Setup Weapon Click Handlers
   const weaponCards = document.querySelectorAll('.weapon-card');
@@ -363,6 +393,16 @@ function startGame(event) {
   }
 
   showToast(`💥 ${bossInfo.name}이(가) 나타났습니다! 혼쭐을 내주세요!`);
+
+  // Reset event state and start random event engine
+  isInvincible = false;
+  damageMult = 1.0;
+  clickBlocked = false;
+  hpPhase = 'normal';
+  elBody.classList.remove('hp-phase-warning', 'hp-phase-danger');
+  elBossAvatarWrapper.classList.remove('shielded', 'invincible');
+  stopRandomEvents();
+  scheduleRandomEvent();
 }
 window.startGame = startGame;
 
@@ -371,6 +411,11 @@ window.startGame = startGame;
  */
 function handleBossClick(e) {
   if (gameState !== STATE_PLAYING) return;
+  if (clickBlocked) {
+    // Show boss taunting during click block
+    triggerBossSpeech("여보세요?! 잠깐이요! 전화 중이에요!");
+    return;
+  }
 
   const now = Date.now();
   const weapon = WEAPONS[activeWeapon];
@@ -395,10 +440,15 @@ function handleBossClick(e) {
   // Upgraded: Damage calculation (increases with weapon level and doubles in Fever Mode)
   let dmgCoeff = 1 + (weaponUpgrades[activeWeapon] - 1) * 0.35;
   let baseDamage = Math.round(weapon.damage * dmgCoeff);
-  let damage = isFeverMode ? baseDamage * 2 : baseDamage;
+  let rawDamage = isFeverMode ? baseDamage * 2 : baseDamage;
+  // Apply event damage multiplier (mercy plea debuff etc)
+  let damage = isInvincible ? 0 : Math.max(1, Math.round(rawDamage * damageMult));
 
   currentHp = Math.max(0, currentHp - damage);
   totalHits++;
+  
+  // Update HP phase for visual effects
+  updateHpPhase();
   
   // Gain Stress Points (SP) based on damage dealt
   stressPoints += damage;
@@ -579,13 +629,15 @@ function deactivateFever() {
  */
 function triggerBossHitAnimation(animClass) {
   // Remove all hit classes and force reflow so animation re-triggers on rapid clicks
-  elBossAvatarWrapper.classList.remove('hit-light', 'hit-heavy', 'hit-splash');
+  elBossAvatarWrapper.classList.remove('hit-light', 'hit-heavy', 'hit-splash', 'boss-pain');
   void elBossAvatarWrapper.offsetWidth; // force reflow
   elBossAvatarWrapper.classList.add(animClass);
+  // Always add pain class for the shiver + tint effect
+  elBossAvatarWrapper.classList.add('boss-pain');
 
   // Auto-remove the class when animation finishes (allows re-triggering)
   const onEnd = () => {
-    elBossAvatarWrapper.classList.remove(animClass);
+    elBossAvatarWrapper.classList.remove(animClass, 'boss-pain');
     elBossAvatarWrapper.removeEventListener('animationend', onEnd);
   };
   elBossAvatarWrapper.addEventListener('animationend', onEnd, { once: true });
@@ -599,6 +651,18 @@ function triggerBossHitAnimation(animClass) {
       elBossImage.style.filter = 'none';
     }
   }, animClass === 'hit-heavy' ? 280 : 160);
+
+  // Show pain emoji on heavy/splash hits
+  if (animClass !== 'hit-light' || Math.random() < 0.3) {
+    triggerPainEmoji(animClass);
+  }
+
+  // Tears on heavy hits or below 50% HP
+  if (animClass === 'hit-heavy' || animClass === 'hit-splash' || currentHp < MAX_HP * 0.5) {
+    if (Math.random() < (currentHp < MAX_HP * 0.25 ? 0.85 : 0.4)) {
+      triggerBossTears();
+    }
+  }
 }
 
 /**
@@ -942,6 +1006,16 @@ function resetGame() {
   stressPoints = 0;
   isFeverMode = false;
   weaponUpgrades = { paper: 1, hammer: 1, coffee: 1, resignation: 1 };
+
+  // Reset event state
+  stopRandomEvents();
+  isInvincible = false;
+  damageMult = 1.0;
+  clickBlocked = false;
+  hpPhase = 'normal';
+  elBody.classList.remove('hp-phase-warning', 'hp-phase-danger');
+  if (elBossAvatarWrapper) elBossAvatarWrapper.classList.remove('shielded', 'invincible', 'boss-pain');
+  if (elRandomEventOverlay) elRandomEventOverlay.style.display = 'none';
   
   particles.forEach(p => {
     if (p.element && p.element.parentNode) p.element.parentNode.removeChild(p.element);
@@ -1046,3 +1120,245 @@ function closeModal(id) {
 }
 window.openModal = openModal;
 window.closeModal = closeModal;
+
+/* ============================================
+   HP PHASE TRACKER
+   ============================================ */
+function updateHpPhase() {
+  const hpRatio = currentHp / MAX_HP;
+  if (hpRatio <= 0.25 && hpPhase !== 'danger') {
+    hpPhase = 'danger';
+    elBody.classList.remove('hp-phase-warning');
+    elBody.classList.add('hp-phase-danger');
+    triggerBossTears();
+    triggerBossSpeech('이... 이러다 내가 정말 쓰러지겠어... 도와줘요... 😭');
+    showToast('⚠️ 부장님 HP 25% 돌파! 거의 다 왔어요!');
+  } else if (hpRatio <= 0.5 && hpPhase === 'normal') {
+    hpPhase = 'warning';
+    elBody.classList.add('hp-phase-warning');
+    triggerBossSpeech('흑... 설마 내가 지는 건가... 이럴 수가...');
+    showToast('⚡ 부장님 HP 50%! 흔들리고 있어요!');
+  }
+}
+
+/* ============================================
+   BOSS TEARS EFFECT
+   ============================================ */
+function triggerBossTears() {
+  if (!elTearLeft || !elTearRight) return;
+  
+  // Restart animations by removing/re-adding class
+  elTearLeft.classList.remove('crying');
+  elTearRight.classList.remove('crying');
+  void elTearLeft.offsetWidth; // reflow
+  void elTearRight.offsetWidth;
+  
+  elTearLeft.classList.add('crying');
+  // Slight delay for right tear for natural stagger
+  setTimeout(() => { elTearRight.classList.add('crying'); }, 180);
+  
+  // Clean up
+  setTimeout(() => {
+    elTearLeft.classList.remove('crying');
+    elTearRight.classList.remove('crying');
+  }, 1300);
+}
+
+/* ============================================
+   PAIN EMOJI FLOATING OVERLAY
+   ============================================ */
+const PAIN_EMOJIS_LIGHT = ['😣', '🥴', '😤', '😖'];
+const PAIN_EMOJIS_HEAVY = ['😱', '💀', '🤯', '😵', '😭'];
+const PAIN_EMOJIS_SPLASH = ['🌊😭', '☕😱', '💧😤'];
+
+function triggerPainEmoji(animClass) {
+  if (!elPainEmoji) return;
+  let pool = PAIN_EMOJIS_LIGHT;
+  if (animClass === 'hit-heavy')  pool = PAIN_EMOJIS_HEAVY;
+  if (animClass === 'hit-splash') pool = PAIN_EMOJIS_SPLASH;
+  
+  elPainEmoji.textContent = pool[Math.floor(Math.random() * pool.length)];
+  elPainEmoji.classList.remove('show');
+  void elPainEmoji.offsetWidth; // reflow
+  elPainEmoji.classList.add('show');
+  
+  setTimeout(() => { elPainEmoji.classList.remove('show'); }, 900);
+}
+
+/* ============================================
+   RANDOM SURPRISE EVENT ENGINE
+   ============================================ */
+const RANDOM_EVENTS = [
+  {
+    id: 'shield',
+    icon: '🛡️',
+    title: '긴급 방어막 발동!',
+    desc: '부장님이 회의 자료 더미를 방패로 세웠습니다! HP가 50 회복됩니다.',
+    quotes: [
+      '"라떼는 말이야... 이 정도 타격은 기합으로 버텼어! (부들부들)"',
+      '"아직 안 끝났어! 운동 좀 했거든! 3층 계단 올라다니는 것도 운동이야!"',
+      '"30년 경력이 그냥 생긴 줄 알아?! ...아, 아파..."',
+    ],
+    duration: 2500,
+    apply: () => {
+      currentHp = Math.min(MAX_HP, currentHp + 50);
+      elBossAvatarWrapper.classList.add('shielded');
+      updateStatsUI();
+      setTimeout(() => elBossAvatarWrapper.classList.remove('shielded'), 2500);
+    }
+  },
+  {
+    id: 'invincible',
+    icon: '💊',
+    title: '진통제 긴급 복용!',
+    desc: '부장님이 두통약을 꺼내 먹고 있습니다... 3초간 무적!',
+    quotes: [
+      '"잠깐만요! 머리가 너무 아파서... 이건 업무상 재해예요... 흑흑"',
+      '"두통약 좀 먹고 다시 해요! 제발! 저도 힘들다고요!"',
+      '"이러다 내가 산재 신청하겠어... 그럼 회사 망해... 우리 둘 다 길바닥이야!"',
+    ],
+    duration: 3000,
+    apply: () => {
+      isInvincible = true;
+      elBossAvatarWrapper.classList.add('invincible');
+      setTimeout(() => {
+        isInvincible = false;
+        elBossAvatarWrapper.classList.remove('invincible');
+        showToast('💊 진통제 효과가 끝났습니다! 계속 공격하세요!');
+      }, 3000);
+    }
+  },
+  {
+    id: 'mercy',
+    icon: '😭',
+    title: '불쌍한 애원 발동!',
+    desc: '부장님이 눈물을 흘리며 애원하고 있습니다... 5초간 데미지 50% 감소!',
+    quotes: [
+      '"나도 내 부장한테 엄청 맞았어... 다 자네를 위한 거야... 진심이야, 흑흑..."',
+      '"김대리... 딱 한 대만 참아줄 수 없겠나? 나 내일 사위 상견례 있어... 제발..."',
+      '"이러다 나 병원 입원하면 누가 결재 해줘?! 김대리 너도 피해야!"',
+    ],
+    duration: 5000,
+    apply: () => {
+      damageMult = 0.5;
+      triggerBossTears();
+      setTimeout(() => {
+        damageMult = 1.0;
+        showToast('😤 부장님 애원 끝! 다시 정상 공격 가능!');
+      }, 5000);
+    }
+  },
+  {
+    id: 'phone',
+    icon: '📞',
+    title: '긴급 전화 수신!',
+    desc: '부장님이 본부장님께 전화를 받고 있습니다! 5초간 공격 불가!',
+    quotes: [
+      '"여보세요?! 본부장님이세요?! 살려주세요 제발...! 아니 그게 아니라..."',
+      '"지금 통화 중이에요! 잠깐만요! 아 이거 뭐야!!! (번호를 누른다)"',
+      '"여보... 나야... 오늘 야근 못 할 것 같아... 집에 일찍 가도 돼? (눈물 줄줄)"',
+    ],
+    duration: 5000,
+    apply: () => {
+      clickBlocked = true;
+      setTimeout(() => {
+        clickBlocked = false;
+        showToast('📞 통화 종료! 이제 다시 공격 가능!');
+      }, 5000);
+    }
+  },
+  {
+    id: 'regen',
+    icon: '💪',
+    title: '분노의 각성!',
+    desc: '부장님이 30년 경력의 오기로 버티고 있습니다! 8초간 HP가 자동 회복됩니다!',
+    quotes: [
+      '"내가 30년 버틴 건 괜히가 아니야!!! ...하지만 이미 눈물이... 흑흑"',
+      '"이 정도로 쓰러질 내가 아니야! ...다리가 후들거리지만!"',
+      '"사람이... 한계까지 몰리면... 각성하는 거야... (하지만 실제로는 좀 무서움)"',
+    ],
+    duration: 4000, // popup shows for 4s, regen runs 8s
+    apply: () => {
+      const regenInterval = setInterval(() => {
+        if (gameState !== STATE_PLAYING || currentHp <= 0) {
+          clearInterval(regenInterval);
+          return;
+        }
+        currentHp = Math.min(MAX_HP, currentHp + 8);
+        updateStatsUI();
+        updateHpPhase();
+      }, 400);
+      setTimeout(() => {
+        clearInterval(regenInterval);
+        showToast('💪 각성 효과 종료! 더 세게 공격하세요!');
+      }, 8000);
+    }
+  },
+];
+
+function scheduleRandomEvent() {
+  if (gameState !== STATE_PLAYING) return;
+  // Random delay: 20–55 seconds
+  const delay = 20000 + Math.random() * 35000;
+  randomEventTimeout = setTimeout(() => {
+    if (gameState !== STATE_PLAYING) return;
+    // Pick a random event
+    const evt = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+    showEventPopup(evt);
+  }, delay);
+}
+
+function stopRandomEvents() {
+  if (randomEventTimeout) {
+    clearTimeout(randomEventTimeout);
+    randomEventTimeout = null;
+  }
+  if (elRandomEventOverlay) elRandomEventOverlay.style.display = 'none';
+}
+
+function showEventPopup(evt) {
+  if (!elRandomEventOverlay) return;
+  
+  // Populate popup content
+  elEventIcon.textContent = evt.icon;
+  elEventTitle.textContent = evt.title;
+  elEventDesc.textContent = evt.desc;
+  elEventQuote.textContent = evt.quotes[Math.floor(Math.random() * evt.quotes.length)];
+  
+  // Timer bar animation
+  elEventTimerFill.style.transition = 'none';
+  elEventTimerFill.style.width = '100%';
+  elRandomEventOverlay.style.display = 'flex';
+  
+  // Sound
+  playChirp(300, 0.12);
+  setTimeout(() => { playChirp(500, 0.1); }, 120);
+  setTimeout(() => { playChirp(700, 0.08); }, 240);
+  
+  // Animate timer draining
+  requestAnimationFrame(() => {
+    elEventTimerFill.style.transition = `width ${evt.duration}ms linear`;
+    elEventTimerFill.style.width = '0%';
+  });
+  
+  // Apply the event effect
+  evt.apply();
+  
+  // Trigger tears for mercy/phone events
+  if (evt.id === 'mercy' || evt.id === 'phone') {
+    triggerBossTears();
+    setTimeout(() => triggerBossTears(), 600);
+  }
+  
+  // Show boss speech
+  triggerBossSpeech(evt.quotes[Math.floor(Math.random() * evt.quotes.length)].replace(/"/g, ''));
+  
+  // Close popup after duration and schedule next event
+  setTimeout(() => {
+    elRandomEventOverlay.style.display = 'none';
+    // Schedule next event (if still playing)
+    if (gameState === STATE_PLAYING) {
+      scheduleRandomEvent();
+    }
+  }, evt.duration);
+}

@@ -212,6 +212,11 @@
           <div class="boss-avatar-wrapper" id="boss-avatar-wrapper">
             <img src="assets/boss_angry.png" alt="Angry Boss" id="boss-image" class="boss-img">
             <div class="dizzy-stars-overlay" id="dizzy-stars">✨💫✨</div>
+            <!-- Tear drops (shown on pain/cry) -->
+            <div class="boss-tear tear-left" id="tear-left"></div>
+            <div class="boss-tear tear-right" id="tear-right"></div>
+            <!-- Pain emoji overlay -->
+            <div class="pain-emoji-overlay" id="pain-emoji"></div>
           </div>
         </div>
       </div>
@@ -362,6 +367,17 @@
 
   <!-- Sound notification toast -->
   <div class="toast-notification" id="toast-notification"></div>
+
+  <!-- Random Surprise Event Popup -->
+  <div class="random-event-overlay" id="random-event-overlay" style="display:none;">
+    <div class="random-event-card" id="random-event-card">
+      <div class="event-icon" id="event-icon">🛡️</div>
+      <div class="event-title" id="event-title">돌발 이벤트!</div>
+      <div class="event-desc" id="event-desc">부장님이 두통약을 먹고 있습니다...</div>
+      <div class="event-quote" id="event-quote">"잠깐만요... 머리가..."</div>
+      <div class="event-timer-bar"><div class="event-timer-fill" id="event-timer-fill"></div></div>
+    </div>
+  </div>
 
   <!-- JavaScript Modules -->
   <script src="audio.js"></script>

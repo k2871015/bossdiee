@@ -419,9 +419,11 @@ main {
   justify-content: center;
   position: relative;
   border-radius: 20px;
-  background: radial-gradient(circle, rgba(16, 20, 38, 0.4) 0%, rgba(7, 9, 19, 0.45) 100%);
-  border: 1px dashed rgba(255,255,255,0.05);
+  /* Solid dark bg — eliminates browser checkerboard on transparent PNGs */
+  background: radial-gradient(ellipse at center, #0d1020 0%, #070913 100%);
+  border: 1px solid rgba(255,255,255,0.05);
   user-select: none;
+  overflow: hidden;
 }
 
 /* Boss Bubble Speech */
@@ -528,6 +530,7 @@ main {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  background: none; /* no checkerboard on transparent PNGs */
   transition: filter 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.2s ease;
 }
 
@@ -1083,3 +1086,199 @@ footer {
   }
 }
 
+/* ============================================
+   BOSS PAIN ANIMATION STATE
+   ============================================ */
+.boss-avatar-wrapper.boss-pain .boss-img {
+  animation: bossPainShiver 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  filter: brightness(2) saturate(4) hue-rotate(-20deg) contrast(1.3) !important;
+}
+@keyframes bossPainShiver {
+  0%   { transform: translate(0, 0)   rotate(0deg)   scale(1); }
+  10%  { transform: translate(-6px, 4px) rotate(-5deg)  scale(0.94); }
+  25%  { transform: translate(6px, -5px) rotate(4deg)   scale(1.06); }
+  40%  { transform: translate(-4px, 3px) rotate(-3deg)  scale(0.97); }
+  55%  { transform: translate(3px, -2px) rotate(2deg)   scale(1.03); }
+  70%  { transform: translate(-2px, 1px) rotate(-1deg)  scale(0.99); }
+  85%  { transform: translate(1px, 0)    rotate(0.5deg) scale(1.01); }
+  100% { transform: translate(0, 0)   rotate(0deg)   scale(1); }
+}
+
+/* ============================================
+   BOSS TEARS — falling teardrop effect
+   ============================================ */
+.boss-tear {
+  position: absolute;
+  width: 7px;
+  height: 12px;
+  border-radius: 50% 50% 60% 60% / 40% 40% 60% 60%;
+  background: linear-gradient(180deg, rgba(100, 180, 255, 0.9) 0%, rgba(60, 140, 255, 0.7) 100%);
+  box-shadow: 0 0 8px rgba(100, 180, 255, 0.8);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 22;
+  top: 55px;
+}
+.boss-tear.tear-left  { left: 72px; }
+.boss-tear.tear-right { right: 72px; }
+.boss-tear.crying {
+  animation: tearFall 1.1s ease-in forwards;
+}
+@keyframes tearFall {
+  0%   { opacity: 0;   transform: translateY(0)   scaleY(0.8); }
+  15%  { opacity: 1;   transform: translateY(4px)  scaleY(1.1); }
+  80%  { opacity: 0.8; transform: translateY(70px) scaleY(1); }
+  100% { opacity: 0;   transform: translateY(95px) scaleY(0.6); }
+}
+
+/* ============================================
+   PAIN EMOJI OVERLAY — floating emoji on hard hits
+   ============================================ */
+.pain-emoji-overlay {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2.2rem;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 28;
+  text-shadow: 0 4px 16px rgba(0,0,0,0.9);
+}
+.pain-emoji-overlay.show {
+  animation: emojiPop 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes emojiPop {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.4); }
+  25%  { opacity: 1; transform: translateX(-50%) translateY(-8px)  scale(1.25); }
+  60%  { opacity: 1; transform: translateX(-50%) translateY(-18px) scale(1.05); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-40px) scale(0.8); }
+}
+
+/* ============================================
+   HP PHASE BOSS TINT — visual state per HP
+   ============================================ */
+/* 50% HP — slight worry glow */
+body.hp-phase-warning .boss-avatar-wrapper {
+  filter: drop-shadow(0 0 18px rgba(255, 180, 0, 0.35));
+}
+/* 25% HP — danger red glow + subtle pulse */
+body.hp-phase-danger .boss-avatar-wrapper {
+  filter: drop-shadow(0 0 24px rgba(255, 60, 60, 0.5));
+  animation: dangerPulseGlow 2s infinite alternate ease-in-out;
+}
+@keyframes dangerPulseGlow {
+  0%   { filter: drop-shadow(0 0 16px rgba(255, 60, 60, 0.35)); }
+  100% { filter: drop-shadow(0 0 32px rgba(255, 60, 60, 0.75)); }
+}
+
+/* ============================================
+   SHIELD INDICATOR — event active on boss
+   ============================================ */
+.boss-avatar-wrapper.shielded::before {
+  content: '🛡️';
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  font-size: 1.8rem;
+  animation: shieldBob 1.2s infinite ease-in-out;
+  z-index: 30;
+}
+@keyframes shieldBob {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50%       { transform: translateY(-6px) rotate(5deg); }
+}
+/* Invincibility flash */
+.boss-avatar-wrapper.invincible {
+  animation: invincibleFlash 0.3s infinite alternate;
+}
+@keyframes invincibleFlash {
+  0%   { filter: brightness(1.6) hue-rotate(200deg); }
+  100% { filter: brightness(0.8) hue-rotate(220deg); }
+}
+
+/* ============================================
+   RANDOM EVENT POPUP OVERLAY
+   ============================================ */
+.random-event-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(7, 9, 19, 0.7);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50000;
+  animation: eventOverlayFadeIn 0.3s ease forwards;
+}
+@keyframes eventOverlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.random-event-card {
+  background: rgba(16, 20, 38, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 60px rgba(0, 210, 211, 0.2), 0 24px 48px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(24px);
+  border-radius: 28px;
+  padding: 2.5rem 3rem;
+  text-align: center;
+  max-width: 420px;
+  width: 90%;
+  animation: eventCardSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  position: relative;
+  overflow: hidden;
+}
+@keyframes eventCardSlideIn {
+  from { transform: translateY(40px) scale(0.9); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+.event-icon {
+  font-size: 3.5rem;
+  margin-bottom: 0.75rem;
+  animation: iconBounce 0.8s ease infinite alternate;
+  display: block;
+}
+@keyframes iconBounce {
+  0%   { transform: translateY(0) scale(1); }
+  100% { transform: translateY(-10px) scale(1.1); }
+}
+.event-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--color-gold);
+  text-shadow: 0 0 20px rgba(226, 201, 116, 0.5);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.04em;
+}
+.event-desc {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+.event-quote {
+  font-size: 0.88rem;
+  font-style: italic;
+  color: var(--color-cyan);
+  background: rgba(0, 210, 211, 0.06);
+  border: 1px solid rgba(0, 210, 211, 0.15);
+  border-radius: 12px;
+  padding: 0.6rem 1rem;
+  line-height: 1.5;
+  margin-bottom: 1.2rem;
+}
+.event-timer-bar {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.event-timer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-cyan) 0%, var(--color-gold) 100%);
+  border-radius: 3px;
+  width: 100%;
+  transition: width linear;
+}
