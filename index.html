@@ -1,14 +1,14 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>스트레스 제로! 부장님 격파 Web Game</title>
-  <meta name="description" content="고집불통 말 안 듣는 부장님에게 서류 뭉치와 토이 해머를 날려 스트레스를 날려버리세요. Web Audio API로 구현된 리얼 사운드 타격 웹게임.">
+  <title>스트레스 제로! 상사님 격파 Web Game</title>
+  <meta name="description" content="고집불통 말 안 듣는 상사님에게 서류 뭉치와 토이 해머를 날려 스트레스를 날려버리세요. Web Audio API로 구현된 리얼 사운드 타격 웹게임.">
   
   <!-- Open Graph / Facebook Social Share Meta Tags -->
-  <meta property="og:title" content="스트레스 제로! 부장님 격파 Web Game">
-  <meta property="og:description" content="고집불통 말 안 듣는 부장님에게 서류 뭉치와 토이 해머를 날려 스트레스를 날려버리세요. Web Audio API로 구현된 리얼 사운드 타격 웹게임.">
+  <meta property="og:title" content="스트레스 제로! 상사님 격파 Web Game">
+  <meta property="og:description" content="고집불통 말 안 듣는 상사님에게 서류 뭉치와 토이 해머를 날려 스트레스를 날려버리세요. Web Audio API로 구현된 리얼 사운드 타격 웹게임.">
   <meta property="og:image" content="assets/boss_angry.png">
   <meta property="og:type" content="website">
   
@@ -33,7 +33,7 @@
       </div>
       <div class="header-actions">
         <button class="icon-btn" id="bgm-toggle-btn">🔇 BGM 끔</button>
-        <button class="icon-btn" id="edit-boss-btn" style="display: none;">⚙️ 부장님 재설정</button>
+        <button class="icon-btn" id="edit-boss-btn" style="display: none;">⚙️ 상사님 재설정</button>
       </div>
     </div>
   </header>
@@ -44,18 +44,18 @@
       <div class="setup-card">
         <div class="setup-header">
           <div class="badge">🔥 STRESS RELIEVER</div>
-          <h2>지긋지긋한 업무 스트레스!<br>부장님 프로필 설정</h2>
+          <h2>지긋지긋한 업무 스트레스!<br>상사님 프로필 설정</h2>
           <p>오늘 나에게 야근을 권유했거나, 말을 지독히 안 들어먹는 그 사람의 정보를 입력하세요. (재미를 위한 가상 공간입니다)</p>
         </div>
         
         <form id="setup-form" onsubmit="startGame(event)">
           <div class="form-group">
-            <label class="input-label" for="boss-name">타겟 부장님 이름</label>
-            <input type="text" id="boss-name" class="text-input" placeholder="예: 김꼰대 부장" required autocomplete="off">
+            <label class="input-label" for="boss-name">타겟 상사님 이름</label>
+            <input type="text" id="boss-name" class="text-input" placeholder="예: 김꼰대 상사" required autocomplete="off">
           </div>
           
           <div class="form-group">
-            <label class="input-label" for="boss-type">부장님 유형 선택</label>
+            <label class="input-label" for="boss-type">상사님 유형 선택</label>
             <select id="boss-type" class="text-input select-input">
               <option value="micromanager">마이크로 매니저 (사사건건 간섭형)</option>
               <option value="konda">꼰대 끝판왕 (라떼는 말이야형)</option>
@@ -65,7 +65,7 @@
           </div>
 
           <div class="form-group">
-            <label class="input-label" for="boss-custom-img">부장님 얼굴 사진 업로드 (선택)</label>
+            <label class="input-label" for="boss-custom-img">상사님 얼굴 사진 업로드 (선택)</label>
             <input type="file" id="boss-custom-img" class="text-input file-input" accept="image/*" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
           </div>
 
@@ -179,8 +179,8 @@
         <!-- Target Info & Health Bar -->
         <div class="arena-header">
           <div class="boss-display-info">
-            <span class="boss-class-badge" id="hud-boss-badge">꼰대형 부장님</span>
-            <h2 id="hud-boss-name">김꼰대 부장</h2>
+            <span class="boss-class-badge" id="hud-boss-badge">꼰대형 상사님</span>
+            <h2 id="hud-boss-name">김꼰대 상사</h2>
           </div>
           <div class="health-container">
             <div class="health-label">
@@ -277,14 +277,14 @@
     <section class="screen-panel" id="victory-panel" style="display: none;">
       <div class="victory-card">
         <div class="victory-icon">🎉</div>
-        <h2>부장님 고집 격파 완료!</h2>
+        <h2>상사님 고집 격파 완료!</h2>
         <h1 class="stress-free-banner">STRESS ZERO</h1>
         
         <div class="report-box">
           <h3>스트레스 해소 진단 성적표</h3>
           <div class="report-row">
-            <span>참교육 대상 부장</span>
-            <span id="report-boss-name" class="text-gold">김꼰대 부장</span>
+            <span>참교육 대상 상사</span>
+            <span id="report-boss-name" class="text-gold">김꼰대 상사</span>
           </div>
           <div class="report-row">
             <span>총 참교육 횟수 (서류뭉치 등)</span>
@@ -295,7 +295,7 @@
             <span id="report-max-combo" class="text-red">0 콤보</span>
           </div>
           <div class="report-row">
-            <span>부장님 상태</span>
+            <span>상사님 상태</span>
             <span class="text-green">사직서 결재 및 눈물 흘리는 중 😭</span>
           </div>
         </div>
@@ -315,7 +315,7 @@
         </div>
 
         <div class="victory-actions">
-          <button class="action-btn" onclick="resetGame()">↩️ 다른 부장님 소환하기</button>
+          <button class="action-btn" onclick="resetGame()">↩️ 다른 상사님 소환하기</button>
           <button class="action-btn btn-secondary" onclick="shareStressReport()">🔗 결과 복사 및 공유</button>
         </div>
       </div>
@@ -359,7 +359,7 @@
       </div>
       <div class="modal-body">
         <p><strong>제1조 (목적)</strong><br>본 약관은 STRESS BUSTER 웹게임 서비스의 이용조건 및 절차에 관한 기본 사항을 규정합니다.</p>
-        <p><strong>제2조 (가상 콘텐츠의 성격)</strong><br>본 서비스에서 입력되는 부장님의 이름, 유형 및 관련 발언은 오직 가상의 시뮬레이션이며 특정 개인에 대한 비방이나 폭력을 조장하지 않습니다. 엔터테인먼트 용도의 놀이 공간입니다.</p>
+        <p><strong>제2조 (가상 콘텐츠의 성격)</strong><br>본 서비스에서 입력되는 상사님의 이름, 유형 및 관련 발언은 오직 가상의 시뮬레이션이며 특정 개인에 대한 비방이나 폭력을 조장하지 않습니다. 엔터테인먼트 용도의 놀이 공간입니다.</p>
         <p><strong>제3조 (면책 조항)</strong><br>본 서비스는 웹 브라우저의 Web Audio API 등 클라이언트 자원을 활용하여 구동되며, 이용 과정에서 발생할 수 있는 오디오 딜레이 또는 디바이스 과부하 등에 대하여 별도의 책임을 지지 않습니다.</p>
       </div>
     </div>
@@ -373,7 +373,7 @@
     <div class="random-event-card" id="random-event-card">
       <div class="event-icon" id="event-icon">🛡️</div>
       <div class="event-title" id="event-title">돌발 이벤트!</div>
-      <div class="event-desc" id="event-desc">부장님이 두통약을 먹고 있습니다...</div>
+      <div class="event-desc" id="event-desc">상사님이 두통약을 먹고 있습니다...</div>
       <div class="event-quote" id="event-quote">"잠깐만요... 머리가..."</div>
       <div class="event-timer-bar"><div class="event-timer-fill" id="event-timer-fill"></div></div>
     </div>
@@ -384,3 +384,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+

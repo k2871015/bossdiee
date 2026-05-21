@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Boss Stress Buster Web Game - Core Logic (AdSense & Feature Upgraded)
  */
 
@@ -24,7 +24,7 @@ let gameState = STATE_CUSTOMIZING;
 
 // Customization Info
 let bossInfo = {
-  name: '김꼰대 부장',
+  name: '김꼰대 상사',
   type: 'konda',
   quote: '"오늘 야근 다들 가능하지? 내일 아침 보고야."',
   customImg: null, // Holds FileReader DataURL
@@ -249,7 +249,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const reader = new FileReader();
       reader.onload = (event) => {
         bossInfo.customImg = event.target.result;
-        showToast("📸 부장님 얼굴 사진이 등록되었습니다!");
+        showToast("📸 상사님 얼굴 사진이 등록되었습니다!");
         playChirp(800, 0.1);
       };
       reader.readAsDataURL(file);
@@ -329,7 +329,7 @@ function startGame(event) {
   const quoteSelect = document.getElementById('boss-quote');
   const customQuoteInput = document.getElementById('boss-custom-quote').value.trim();
 
-  bossInfo.name = nameInput || '김꼰대 부장';
+  bossInfo.name = nameInput || '김꼰대 상사';
   bossInfo.type = typeSelect.value;
   
   // Determine catchphrase (prioritize custom quote)
@@ -643,17 +643,13 @@ function triggerBossHitAnimation(animClass) {
   elBossAvatarWrapper.addEventListener('animationend', onEnd, { once: true });
 
   // Red tint flash filter on boss image
-  // Temporarily override blend-mode so filter colors are visible
-  elBossImage.style.mixBlendMode = 'normal';
   elBossImage.style.filter = 'brightness(1.4) sepia(1) hue-rotate(-45deg) saturate(4) contrast(1.1)';
   const flashDuration = animClass === 'hit-heavy' ? 280 : 160;
   setTimeout(() => {
     if (gameState === STATE_VICTORY && bossInfo.customImg) {
       elBossImage.style.filter = 'grayscale(0.5) sepia(0.5) rotate(10deg)';
-      elBossImage.style.mixBlendMode = 'normal';
     } else {
       elBossImage.style.filter = '';
-      elBossImage.style.mixBlendMode = ''; // revert to CSS mix-blend-mode: multiply
     }
   }, flashDuration);
 
@@ -1036,13 +1032,13 @@ window.resetGame = resetGame;
 function shareStressReport() {
   playChirp(800, 0.1);
 
-  const reportText = `[STRESS BUSTER 부장님 격파 성적표]
+  const reportText = `[STRESS BUSTER 상사님 격파 성적표]
 🔥 참교육 대상: ${bossInfo.name} (${elHudBossBadge.textContent})
 💥 누적 격파 타격: ${totalHits}회
 ⚡ 최고 콤보 기록: ${maxCombo} 콤보
 🎉 해소된 스트레스: 100% (STRESS ZERO!)
 
-"사직서 투하 한방에 어질어질해진 부장님은 결국 야근을 취소하고 눈물로 퇴사를 수락하셨습니다... 😭"
+"사직서 투하 한방에 어질어질해진 상사님은 결국 야근을 취소하고 눈물로 퇴사를 수락하셨습니다... 😭"
 퇴근길 스트레스 해소 웹게임 플레이하기!`;
 
   navigator.clipboard.writeText(reportText).then(() => {
@@ -1137,12 +1133,12 @@ function updateHpPhase() {
     elBody.classList.add('hp-phase-danger');
     triggerBossTears();
     triggerBossSpeech('이... 이러다 내가 정말 쓰러지겠어... 도와줘요... 😭');
-    showToast('⚠️ 부장님 HP 25% 돌파! 거의 다 왔어요!');
+    showToast('⚠️ 상사님 HP 25% 돌파! 거의 다 왔어요!');
   } else if (hpRatio <= 0.5 && hpPhase === 'normal') {
     hpPhase = 'warning';
     elBody.classList.add('hp-phase-warning');
     triggerBossSpeech('흑... 설마 내가 지는 건가... 이럴 수가...');
-    showToast('⚡ 부장님 HP 50%! 흔들리고 있어요!');
+    showToast('⚡ 상사님 HP 50%! 흔들리고 있어요!');
   }
 }
 
@@ -1198,7 +1194,7 @@ const RANDOM_EVENTS = [
     id: 'shield',
     icon: '🛡️',
     title: '긴급 방어막 발동!',
-    desc: '부장님이 회의 자료 더미를 방패로 세웠습니다! HP가 50 회복됩니다.',
+    desc: '상사님이 회의 자료 더미를 방패로 세웠습니다! HP가 50 회복됩니다.',
     quotes: [
       '"라떼는 말이야... 이 정도 타격은 기합으로 버텼어! (부들부들)"',
       '"아직 안 끝났어! 운동 좀 했거든! 3층 계단 올라다니는 것도 운동이야!"',
@@ -1216,7 +1212,7 @@ const RANDOM_EVENTS = [
     id: 'invincible',
     icon: '💊',
     title: '진통제 긴급 복용!',
-    desc: '부장님이 두통약을 꺼내 먹고 있습니다... 3초간 무적!',
+    desc: '상사님이 두통약을 꺼내 먹고 있습니다... 3초간 무적!',
     quotes: [
       '"잠깐만요! 머리가 너무 아파서... 이건 업무상 재해예요... 흑흑"',
       '"두통약 좀 먹고 다시 해요! 제발! 저도 힘들다고요!"',
@@ -1237,9 +1233,9 @@ const RANDOM_EVENTS = [
     id: 'mercy',
     icon: '😭',
     title: '불쌍한 애원 발동!',
-    desc: '부장님이 눈물을 흘리며 애원하고 있습니다... 5초간 데미지 50% 감소!',
+    desc: '상사님이 눈물을 흘리며 애원하고 있습니다... 5초간 데미지 50% 감소!',
     quotes: [
-      '"나도 내 부장한테 엄청 맞았어... 다 자네를 위한 거야... 진심이야, 흑흑..."',
+      '"나도 내 상사한테 엄청 맞았어... 다 자네를 위한 거야... 진심이야, 흑흑..."',
       '"김대리... 딱 한 대만 참아줄 수 없겠나? 나 내일 사위 상견례 있어... 제발..."',
       '"이러다 나 병원 입원하면 누가 결재 해줘?! 김대리 너도 피해야!"',
     ],
@@ -1249,7 +1245,7 @@ const RANDOM_EVENTS = [
       triggerBossTears();
       setTimeout(() => {
         damageMult = 1.0;
-        showToast('😤 부장님 애원 끝! 다시 정상 공격 가능!');
+        showToast('😤 상사님 애원 끝! 다시 정상 공격 가능!');
       }, 5000);
     }
   },
@@ -1257,9 +1253,9 @@ const RANDOM_EVENTS = [
     id: 'phone',
     icon: '📞',
     title: '긴급 전화 수신!',
-    desc: '부장님이 본부장님께 전화를 받고 있습니다! 5초간 공격 불가!',
+    desc: '상사님이 본상사님께 전화를 받고 있습니다! 5초간 공격 불가!',
     quotes: [
-      '"여보세요?! 본부장님이세요?! 살려주세요 제발...! 아니 그게 아니라..."',
+      '"여보세요?! 본상사님이세요?! 살려주세요 제발...! 아니 그게 아니라..."',
       '"지금 통화 중이에요! 잠깐만요! 아 이거 뭐야!!! (번호를 누른다)"',
       '"여보... 나야... 오늘 야근 못 할 것 같아... 집에 일찍 가도 돼? (눈물 줄줄)"',
     ],
@@ -1276,7 +1272,7 @@ const RANDOM_EVENTS = [
     id: 'regen',
     icon: '💪',
     title: '분노의 각성!',
-    desc: '부장님이 30년 경력의 오기로 버티고 있습니다! 8초간 HP가 자동 회복됩니다!',
+    desc: '상사님이 30년 경력의 오기로 버티고 있습니다! 8초간 HP가 자동 회복됩니다!',
     quotes: [
       '"내가 30년 버틴 건 괜히가 아니야!!! ...하지만 이미 눈물이... 흑흑"',
       '"이 정도로 쓰러질 내가 아니야! ...다리가 후들거리지만!"',
@@ -1367,3 +1363,4 @@ function showEventPopup(evt) {
     }
   }, evt.duration);
 }
+
