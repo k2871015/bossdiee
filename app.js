@@ -643,14 +643,19 @@ function triggerBossHitAnimation(animClass) {
   elBossAvatarWrapper.addEventListener('animationend', onEnd, { once: true });
 
   // Red tint flash filter on boss image
+  // Temporarily override blend-mode so filter colors are visible
+  elBossImage.style.mixBlendMode = 'normal';
   elBossImage.style.filter = 'brightness(1.4) sepia(1) hue-rotate(-45deg) saturate(4) contrast(1.1)';
+  const flashDuration = animClass === 'hit-heavy' ? 280 : 160;
   setTimeout(() => {
     if (gameState === STATE_VICTORY && bossInfo.customImg) {
       elBossImage.style.filter = 'grayscale(0.5) sepia(0.5) rotate(10deg)';
+      elBossImage.style.mixBlendMode = 'normal';
     } else {
-      elBossImage.style.filter = 'none';
+      elBossImage.style.filter = '';
+      elBossImage.style.mixBlendMode = ''; // revert to CSS mix-blend-mode: multiply
     }
-  }, animClass === 'hit-heavy' ? 280 : 160);
+  }, flashDuration);
 
   // Show pain emoji on heavy/splash hits
   if (animClass !== 'hit-light' || Math.random() < 0.3) {
