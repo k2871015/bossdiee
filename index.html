@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>스트레스 제로! 부장님 격파 Web Game</title>
   <meta name="description" content="고집불통 말 안 듣는 부장님에게 서류 뭉치와 토이 해머를 날려 스트레스를 날려버리세요. Web Audio API로 구현된 리얼 사운드 타격 웹게임.">
+  
+  <!-- Open Graph / Facebook Social Share Meta Tags -->
+  <meta property="og:title" content="스트레스 제로! 부장님 격파 Web Game">
+  <meta property="og:description" content="고집불통 말 안 듣는 부장님에게 서류 뭉치와 토이 해머를 날려 스트레스를 날려버리세요. Web Audio API로 구현된 리얼 사운드 타격 웹게임.">
+  <meta property="og:image" content="assets/boss_angry.png">
+  <meta property="og:type" content="website">
+  
+  <!-- Google AdSense Placeholder Auto-Ads -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+
   <link rel="stylesheet" href="style.css">
   <!-- Google Font: Outfit & Noto Sans KR -->
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -52,6 +62,11 @@
               <option value="indecisive">우유부단 결정장애 (도돌이표형)</option>
               <option value="angry">버럭버럭 분노조절장애 (고함형)</option>
             </select>
+          </div>
+
+          <div class="form-group">
+            <label class="input-label" for="boss-custom-img">부장님 얼굴 사진 업로드 (선택)</label>
+            <input type="file" id="boss-custom-img" class="text-input file-input" accept="image/*" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
           </div>
 
           <div class="form-group">
@@ -107,14 +122,55 @@
           </div>
         </div>
 
-        <div class="hud-section">
-          <h3>격파 팁</h3>
-          <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5;">
-            - 🧻 <strong>종이 뭉치</strong>: 빠르게 난사하여 콤보를 올려보세요!<br>
-            - 🔨 <strong>뿅망치</strong>: 큰 데미지와 함께 부장님이 어질어질 돌며 정신을 못 차립니다.<br>
-            - ☕ <strong>에스프레소</strong>: 뜨겁게 끼얹어 순간적으로 고집 수치 차단을 유발합니다.<br>
-            - 📄 <strong>사직서 투척</strong>: 쿨타임이 존재하지만 가장 치명적인 데미지를 가합니다.
-          </p>
+        <div class="hud-section" id="upgrade-shop-section">
+          <h3>사내 복지 & 장비 강화</h3>
+          <div class="shop-points">
+            보유 SP: <span id="shop-points-value" class="text-gold">0 SP</span>
+          </div>
+          <div class="shop-items">
+            <div class="shop-item" data-weapon="paper">
+              <div class="shop-item-info">
+                <span class="shop-item-name">🧻 종이 뭉치</span>
+                <span class="shop-item-level" id="level-paper">Lv.1</span>
+              </div>
+              <button class="shop-upgrade-btn" onclick="upgradeWeapon('paper')"><span id="cost-paper">25</span> SP</button>
+            </div>
+            <div class="shop-item" data-weapon="hammer">
+              <div class="shop-item-info">
+                <span class="shop-item-name">🔨 뿅망치</span>
+                <span class="shop-item-level" id="level-hammer">Lv.1</span>
+              </div>
+              <button class="shop-upgrade-btn" onclick="upgradeWeapon('hammer')"><span id="cost-hammer">80</span> SP</button>
+            </div>
+            <div class="shop-item" data-weapon="coffee">
+              <div class="shop-item-info">
+                <span class="shop-item-name">☕ 에스프레소</span>
+                <span class="shop-item-level" id="level-coffee">Lv.1</span>
+              </div>
+              <button class="shop-upgrade-btn" onclick="upgradeWeapon('coffee')"><span id="cost-coffee">180</span> SP</button>
+            </div>
+            <div class="shop-item" data-weapon="resignation">
+              <div class="shop-item-info">
+                <span class="shop-item-name">📄 사직서</span>
+                <span class="shop-item-level" id="level-resignation">Lv.1</span>
+              </div>
+              <button class="shop-upgrade-btn" onclick="upgradeWeapon('resignation')"><span id="cost-resignation">400</span> SP</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AdSense Left Sidebar Slot -->
+        <div class="adsense-container adsense-sidebar-banner">
+          <div class="ads-label">ADVERTISEMENT</div>
+          <ins class="adsbygoogle"
+               style="display:block; width:100%; height:120px;"
+               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+               data-ad-slot="9876543210"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+          <script>
+               (adsbygoogle = window.adsbygoogle || []).push({});
+          </script>
         </div>
       </div>
 
@@ -139,6 +195,11 @@
 
         <!-- Interactive Avatar Area -->
         <div class="avatar-view-container" id="boss-target-area">
+          <!-- Fever Mode Banner -->
+          <div class="fever-banner" id="fever-banner">
+            🔥 FEVER TIME (DOUBLE DAMAGE & NO DELAY!) 🔥
+          </div>
+
           <!-- Boss Dialogue speech bubble -->
           <div class="boss-bubble" id="boss-speech">
             "어이 김대리, 오늘 야근 가능하지?"
@@ -234,6 +295,20 @@
           </div>
         </div>
 
+        <!-- AdSense Victory Banner Slot -->
+        <div class="adsense-container adsense-victory-banner" style="margin-bottom: 1.5rem;">
+          <div class="ads-label">ADVERTISEMENT</div>
+          <ins class="adsbygoogle"
+               style="display:block; text-align:center;"
+               data-ad-layout="in-article"
+               data-ad-format="fluid"
+               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+               data-ad-slot="5678901234"></ins>
+          <script>
+               (adsbygoogle = window.adsbygoogle || []).push({});
+          </script>
+        </div>
+
         <div class="victory-actions">
           <button class="action-btn" onclick="resetGame()">↩️ 다른 부장님 소환하기</button>
           <button class="action-btn btn-secondary" onclick="shareStressReport()">🔗 결과 복사 및 공유</button>
@@ -241,6 +316,49 @@
       </div>
     </section>
   </main>
+
+  <!-- Legal Compliance Footer -->
+  <footer>
+    <div class="footer-container">
+      <p>© 2026 STRESS BUSTER. All rights reserved. 본 게임은 스트레스 해소를 위한 가상의 시뮬레이션입니다.</p>
+      <div class="footer-links">
+        <a href="#" onclick="openModal('privacy-modal'); return false;">개인정보처리방침</a>
+        <span class="footer-divider">|</span>
+        <a href="#" onclick="openModal('terms-modal'); return false;">이용약관</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Privacy Modal -->
+  <div class="modal-overlay" id="privacy-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>개인정보처리방침 (Privacy Policy)</h3>
+        <button class="modal-close-btn" onclick="closeModal('privacy-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <p>본 웹게임(이하 "서비스")은 이용자의 별도 개인정보 수집 및 저장을 수행하지 않는 순수 클립보드 복사 및 가상 브라우저 엔터테인먼트 사이트입니다.</p>
+        <p><strong>1. Google AdSense 광고 연동</strong><br>본 서비스는 Google AdSense를 이용한 제3자 광고 게재를 허용할 수 있습니다. Google은 쿠키를 사용하여 본 사이트 또는 다른 사이트에 대한 사용자의 방문을 기반으로 사용자에게 광고를 게재합니다.</p>
+        <p><strong>2. 쿠키(Cookie) 관리</strong><br>이용자는 웹브라우저 설정에서 쿠키 제공을 거부하거나 저장된 쿠키를 삭제할 수 있습니다. 다만, 쿠키 설정을 변경하는 경우 서비스 이용의 일부 기능이 원활하지 않을 수 있습니다.</p>
+        <p><strong>3. 연락처</strong><br>본 서비스 관련 문의사항은 사용자 지원 이메일 또는 저장소를 참조하십시오.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terms Modal -->
+  <div class="modal-overlay" id="terms-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>이용약관 (Terms of Service)</h3>
+        <button class="modal-close-btn" onclick="closeModal('terms-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <p><strong>제1조 (목적)</strong><br>본 약관은 STRESS BUSTER 웹게임 서비스의 이용조건 및 절차에 관한 기본 사항을 규정합니다.</p>
+        <p><strong>제2조 (가상 콘텐츠의 성격)</strong><br>본 서비스에서 입력되는 부장님의 이름, 유형 및 관련 발언은 오직 가상의 시뮬레이션이며 특정 개인에 대한 비방이나 폭력을 조장하지 않습니다. 엔터테인먼트 용도의 놀이 공간입니다.</p>
+        <p><strong>제3조 (면책 조항)</strong><br>본 서비스는 웹 브라우저의 Web Audio API 등 클라이언트 자원을 활용하여 구동되며, 이용 과정에서 발생할 수 있는 오디오 딜레이 또는 디바이스 과부하 등에 대하여 별도의 책임을 지지 않습니다.</p>
+      </div>
+    </div>
+  </div>
 
   <!-- Sound notification toast -->
   <div class="toast-notification" id="toast-notification"></div>

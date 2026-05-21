@@ -1,5 +1,5 @@
 /**
- * Boss Stress Buster Web Game - Core Logic
+ * Boss Stress Buster Web Game - Core Logic (AdSense & Feature Upgraded)
  */
 
 // Game States
@@ -17,14 +17,19 @@ let heartRate = 80;
 let comboTimer = null;
 let lastHitTime = 0;
 
+// Upgraded Mechanics State
+let stressPoints = 0;
+let isFeverMode = false;
+
 // Customization Info
 let bossInfo = {
   name: '김꼰대 부장',
   type: 'konda',
   quote: '"오늘 야근 다들 가능하지? 내일 아침 보고야."',
+  customImg: null, // Holds FileReader DataURL
 };
 
-// Weapon specs
+// Weapon base specs
 const WEAPONS = {
   paper: {
     damage: 5,
@@ -50,10 +55,25 @@ const WEAPONS = {
   resignation: {
     damage: 100,
     cooldown: 10000, // ms (10 seconds)
-    animationClass: 'hit-splash', // we also trigger screen shake
+    animationClass: 'hit-splash',
     emoji: '📄',
     particles: ['📄', '💸', '💥', '✨', '🔥'],
   }
+};
+
+// Weapon Upgrade Level and Base Cost Configurations
+let weaponUpgrades = {
+  paper: 1,
+  hammer: 1,
+  coffee: 1,
+  resignation: 1
+};
+
+const UPGRADE_COSTS = {
+  paper: 25,
+  hammer: 80,
+  coffee: 180,
+  resignation: 400
 };
 
 let activeWeapon = 'paper';
@@ -102,7 +122,7 @@ const ARCHETYPE_QUOTES = {
   indecisive: [
     "음... 역시 시안 A로 할까? 아니 B로 하자. 잠깐, C는 어때?",
     "일단 다 작성해서 가져와봐. 보고 나서 결정할게.",
-    "내가 단독으로 결정하기엔 리스크가 너무 크지 않나?",
+    "내가 결정하기엔 리스크가 너무 크지 않나?",
     "다시 한 번 검토해보게. 뭐가 확실한지 모르겠어.",
     "내일 다시 이야기해보세. 오늘은 퇴근해."
   ],
@@ -137,6 +157,11 @@ let elEditBossBtn;
 let elBgmToggleBtn;
 let elToastNotification;
 
+// Upgraded Selectors
+let elBossCustomImg;
+let elShopPointsValue;
+let elFeverBanner;
+
 // Initialize script when DOM is loaded
 window.addEventListener('DOMContentLoaded', () => {
   // DOM Cache
@@ -160,6 +185,11 @@ window.addEventListener('DOMContentLoaded', () => {
   elEditBossBtn = document.getElementById('edit-boss-btn');
   elBgmToggleBtn = document.getElementById('bgm-toggle-btn');
   elToastNotification = document.getElementById('toast-notification');
+  
+  // Upgraded elements
+  elBossCustomImg = document.getElementById('boss-custom-img');
+  elShopPointsValue = document.getElementById('shop-points-value');
+  elFeverBanner = document.getElementById('fever-banner');
 
   // Setup Weapon Click Handlers
   const weaponCards = document.querySelectorAll('.weapon-card');
@@ -181,17 +211,23 @@ window.addEventListener('DOMContentLoaded', () => {
 
   elBgmToggleBtn.addEventListener('click', toggleBgm);
 
-  // Setup Custom Quote Display Logic
-  const selectQuote = document.getElementById('boss-quote');
-  const customQuoteInput = document.getElementById('boss-custom-quote');
-  selectQuote.addEventListener('change', () => {
-    playChirp(700, 0.05);
-  });
-  customQuoteInput.addEventListener('focus', () => {
-    // optional helper
+  // Handle custom image uploads via FileReader
+  elBossCustomImg.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        bossInfo.customImg = event.target.result;
+        showToast("📸 부장님 얼굴 사진이 등록되었습니다!");
+        playChirp(800, 0.1);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      bossInfo.customImg = null;
+    }
   });
 
-  // Start floating background particles loop (pure CSS particles or JS initialized particles)
+  // Start floating background particles loop
   initBgParticles();
 
   // Start game loops for physics and cooldowns
@@ -207,12 +243,14 @@ function setGameState(state) {
   if (state === STATE_CUSTOMIZING) {
     elEditBossBtn.style.display = 'none';
     stopBossAutoSpeeches();
+    deactivateFever();
   } else if (state === STATE_PLAYING) {
     elEditBossBtn.style.display = 'inline-block';
     startBossAutoSpeeches();
   } else if (state === STATE_VICTORY) {
     elEditBossBtn.style.display = 'none';
     stopBossAutoSpeeches();
+    deactivateFever();
   }
 }
 
@@ -280,16 +318,25 @@ function startGame(event) {
   maxCombo = 0;
   heartRate = 80;
   lastHitTime = 0;
+  stressPoints = 0;
+  isFeverMode = false;
+  weaponUpgrades = { paper: 1, hammer: 1, coffee: 1, resignation: 1 };
   
   // Reset weapon cooldowns
   lastUsed = { paper: 0, hammer: 0, coffee: 0, resignation: 0 };
 
-  // Update UI Stats
-  updateStatsUI();
-
-  // Reset Boss Image & dizzy state
-  elBossImage.src = 'assets/boss_angry.png';
+  // Set Custom Boss Image or Default image
+  elBossImage.style.filter = 'none';
+  if (bossInfo.customImg) {
+    elBossImage.src = bossInfo.customImg;
+  } else {
+    elBossImage.src = 'assets/boss_angry.png';
+  }
   elBossAvatarWrapper.classList.remove('dizzy');
+
+  // Update UI Stats & Shop Upgrade states
+  updateStatsUI();
+  updateShopUI();
 
   // Clear existing splats/hits
   elHitEffectsLayer.innerHTML = '';
@@ -324,22 +371,36 @@ function handleBossClick(e) {
 
   const now = Date.now();
   const weapon = WEAPONS[activeWeapon];
-  const cooldown = weapon.cooldown;
+  
+  // Upgraded: Cooldown calculation (decreases with weapon level)
+  let cdCoeff = Math.pow(0.85, weaponUpgrades[activeWeapon] - 1);
+  let weaponCooldown = Math.max(activeWeapon === 'resignation' ? 3000 : (activeWeapon === 'paper' ? 0 : 80), Math.round(weapon.cooldown * cdCoeff));
+  
+  // Fever Mode bypasses cooldowns to create a satisfying click-frenzy (except 50ms anti-spam lock)
+  let effectiveCooldown = isFeverMode ? 50 : weaponCooldown;
 
   // Cooldown validation
-  if (now - lastUsed[activeWeapon] < cooldown) {
-    // Play error buzz chirp
-    playChirp(150, 0.15);
+  if (now - lastUsed[activeWeapon] < effectiveCooldown) {
+    // Play quick error chirp
+    playChirp(150, 0.08);
     return;
   }
 
   // Update cooldown timestamp
   lastUsed[activeWeapon] = now;
 
-  // Hit Math & damage
-  currentHp = Math.max(0, currentHp - weapon.damage);
+  // Upgraded: Damage calculation (increases with weapon level and doubles in Fever Mode)
+  let dmgCoeff = 1 + (weaponUpgrades[activeWeapon] - 1) * 0.35;
+  let baseDamage = Math.round(weapon.damage * dmgCoeff);
+  let damage = isFeverMode ? baseDamage * 2 : baseDamage;
+
+  currentHp = Math.max(0, currentHp - damage);
   totalHits++;
   
+  // Gain Stress Points (SP) based on damage dealt
+  stressPoints += damage;
+  updateShopUI();
+
   // Trigger Sound effect based on weapon
   if (activeWeapon === 'paper') {
     playThud();
@@ -362,6 +423,16 @@ function handleBossClick(e) {
   }
   lastHitTime = now;
 
+  // Trigger Fever Mode if Combo reaches 15
+  if (comboCount >= 15 && !isFeverMode) {
+    activateFever();
+  }
+
+  // High pitch chirp variation during Fever Time click speed
+  if (isFeverMode) {
+    playChirp(800 + Math.min(200, comboCount * 6), 0.05);
+  }
+
   // Simulating heart rate increase relative to combo action
   heartRate = Math.min(160, 80 + (comboCount * 2) + Math.floor(Math.random() * 8));
 
@@ -377,7 +448,7 @@ function handleBossClick(e) {
   spawnHitParticles(clickX, clickY, weapon.particles);
 
   // Spawn Floating hit text
-  spawnFloatingText(clickX, clickY, weapon.damage);
+  spawnFloatingText(clickX, clickY, damage);
 
   // Splat overlay for coffee weapon
   if (activeWeapon === 'coffee') {
@@ -390,7 +461,7 @@ function handleBossClick(e) {
   }
 
   // Dynamic Boss Speech bubble response
-  if (totalHits % 5 === 0 || weapon.damage >= 30) {
+  if (totalHits % 5 === 0 || damage >= 30) {
     triggerBossSpeech();
   }
 
@@ -427,6 +498,80 @@ function updateStatsUI() {
 }
 
 /**
+ * Upgraded Shop UI updates
+ */
+function updateShopUI() {
+  elShopPointsValue.textContent = stressPoints + " SP";
+  
+  Object.keys(UPGRADE_COSTS).forEach(w => {
+    const lvl = weaponUpgrades[w];
+    const cost = Math.round(UPGRADE_COSTS[w] * Math.pow(1.5, lvl - 1));
+    
+    // Update labels
+    const elLevel = document.getElementById(`level-${w}`);
+    const elCost = document.getElementById(`cost-${w}`);
+    if (elLevel) elLevel.textContent = `Lv.${lvl}`;
+    if (elCost) elCost.textContent = `${cost}`;
+    
+    // Enable or disable upgrade buttons
+    const btn = document.querySelector(`.shop-item[data-weapon="${w}"] .shop-upgrade-btn`);
+    if (btn) {
+      if (stressPoints >= cost) {
+        btn.disabled = false;
+      } else {
+        btn.disabled = true;
+      }
+    }
+  });
+}
+
+/**
+ * Upgraded Weapon Level up purchase handler
+ */
+function upgradeWeapon(weaponType) {
+  if (elBody.className !== STATE_PLAYING) return;
+  
+  const lvl = weaponUpgrades[weaponType];
+  const cost = Math.round(UPGRADE_COSTS[weaponType] * Math.pow(1.5, lvl - 1));
+  
+  if (stressPoints >= cost) {
+    stressPoints -= cost;
+    weaponUpgrades[weaponType]++;
+    
+    // Play shop sound effect (high pitch)
+    playChirp(900, 0.15);
+    
+    showToast(`⚡ ${WEAPONS[weaponType].emoji} 무기가 레벨 ${weaponUpgrades[weaponType]}(으)로 강화되었습니다! (공격력 증가 + 쿨다운 감소)`);
+    
+    // Refresh Shop & HUD values
+    updateShopUI();
+    updateStatsUI();
+  }
+}
+window.upgradeWeapon = upgradeWeapon;
+
+/**
+ * Activate combo Fever Time
+ */
+function activateFever() {
+  isFeverMode = true;
+  elBody.classList.add('fever-active');
+  elFeverBanner.classList.add('active');
+  
+  playUltimateBreak(); // Dramatic siren sweep
+  showToast("🔥 피버 타임 활성화! 공격속도 극대화 + 데미지 2배! 🔥");
+}
+
+/**
+ * Deactivate Fever mode
+ */
+function deactivateFever() {
+  isFeverMode = false;
+  if (elBody) elBody.classList.remove('fever-active');
+  if (elFeverBanner) elFeverBanner.classList.remove('active');
+}
+
+/**
  * Trigger boss avatar visual hits
  */
 function triggerBossHitAnimation(animClass) {
@@ -434,10 +579,14 @@ function triggerBossHitAnimation(animClass) {
   elBossAvatarWrapper.offsetHeight; // trigger reflow
   elBossAvatarWrapper.classList.add(animClass);
 
-  // Also red glow/tint filter on boss image momentarily
+  // Red tint flash filter on boss image
   elBossImage.style.filter = 'brightness(1.2) sepia(1) hue-rotate(-50deg) saturate(3)';
   setTimeout(() => {
-    elBossImage.style.filter = 'none';
+    if (elBody.className === STATE_VICTORY && bossInfo.customImg) {
+      elBossImage.style.filter = 'grayscale(0.5) sepia(0.5) rotate(10deg)';
+    } else {
+      elBossImage.style.filter = 'none';
+    }
   }, 180);
 }
 
@@ -467,7 +616,7 @@ function spawnFloatingText(x, y, damage) {
   textEl.style.left = `${x}px`;
   textEl.style.top = `${y - 15}px`;
 
-  // Stylized quotes or damage numbers
+  // Stylized slogans
   const randomPhrases = [
     "야근 거부! 🚫",
     "사직서 투하! 📄",
@@ -483,8 +632,11 @@ function spawnFloatingText(x, y, damage) {
 
   let displayContent = `-${damage} HP`;
   
-  // 30% chance to show text phrase instead of raw numbers on small hits, or always on heavy damage
-  if (damage >= 30 || Math.random() < 0.35) {
+  if (isFeverMode) {
+    displayContent = `🔥 피버 크리티컬! -${damage} HP`;
+    textEl.style.color = 'var(--color-red)';
+    textEl.style.fontSize = '1.3rem';
+  } else if (damage >= 30 || Math.random() < 0.35) {
     if (activeWeapon === 'resignation') {
       displayContent = `💥 퇴사 폭탄! -${damage} HP`;
       textEl.style.color = 'var(--color-gold)';
@@ -519,11 +671,9 @@ function spawnFloatingText(x, y, damage) {
 function spawnCoffeeSplat(x, y) {
   const splat = document.createElement('div');
   splat.className = 'coffee-splat';
-  // Adjust anchor point to center of splash
   splat.style.left = `${x - 30}px`;
   splat.style.top = `${y - 30}px`;
 
-  // Randomize rotation slightly
   const rot = Math.floor(Math.random() * 360);
   splat.style.transform = `scale(1) rotate(${rot}deg)`;
 
@@ -555,7 +705,6 @@ function spawnHitParticles(x, y, particlePool) {
 
     elHitEffectsLayer.appendChild(pEl);
 
-    // Initial random velocities
     const angle = Math.random() * Math.PI * 2;
     const speed = 2 + Math.random() * 6;
     
@@ -564,7 +713,7 @@ function spawnHitParticles(x, y, particlePool) {
       x: x,
       y: y,
       vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 2, // slightly bias upwards
+      vy: Math.sin(angle) * speed - 2,
       rotation: Math.random() * 360,
       vRot: (Math.random() * 10) - 5,
       alpha: 1,
@@ -583,7 +732,6 @@ function triggerBossSpeech(customText = null) {
   if (customText) {
     speech = customText;
   } else {
-    // Choose between archetype quotes and general angry reactions
     if (Math.random() < 0.4) {
       const typeList = ARCHETYPE_QUOTES[bossInfo.type] || ARCHETYPE_QUOTES.konda;
       speech = typeList[Math.floor(Math.random() * typeList.length)];
@@ -597,8 +745,6 @@ function triggerBossSpeech(customText = null) {
   elBossSpeech.offsetHeight; // reflow
   elBossSpeech.classList.add('show');
 
-  // Auto hide after 2.0s
-  // Store a timeout id or clear current speech bubble to avoid race condition
   if (window.speechTimeout) {
     clearTimeout(window.speechTimeout);
   }
@@ -613,7 +759,6 @@ function triggerBossSpeech(customText = null) {
 let autoSpeechInterval = null;
 function startBossAutoSpeeches() {
   stopBossAutoSpeeches();
-  // Boss speaks on their own every 8-12 seconds
   autoSpeechInterval = setInterval(() => {
     if (elBody.className === STATE_PLAYING && Math.random() < 0.7) {
       const quotes = ARCHETYPE_QUOTES[bossInfo.type] || ARCHETYPE_QUOTES.konda;
@@ -651,7 +796,6 @@ function updateParticles() {
   for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
     
-    // Physics updates
     p.vy += p.gravity;
     p.x += p.vx;
     p.y += p.vy;
@@ -664,7 +808,6 @@ function updateParticles() {
       p.element.style.opacity = p.alpha;
       remaining.push(p);
     } else {
-      // Remove element
       if (p.element && p.element.parentNode) {
         p.element.parentNode.removeChild(p.element);
       }
@@ -680,16 +823,18 @@ function updateParticles() {
 function updateCooldownsUI() {
   const now = Date.now();
   
-  // Resignation Letter Ultimate Cooldown
+  // Resignation Letter Cooldown (Bypassed in Fever mode)
   const resCooldwn = WEAPONS.resignation.cooldown;
+  let cdCoeff = Math.pow(0.85, weaponUpgrades.resignation - 1);
+  let effectiveResCd = Math.max(3000, Math.round(resCooldwn * cdCoeff));
+
   const resElapsed = now - lastUsed.resignation;
   
-  if (resElapsed < resCooldwn) {
-    const remainingPercent = Math.max(0, 100 - (resElapsed / resCooldwn) * 100);
+  if (resElapsed < effectiveResCd && !isFeverMode) {
+    const remainingPercent = Math.max(0, 100 - (resElapsed / effectiveResCd) * 100);
     elResignationCooldownOverlay.style.width = remainingPercent + "%";
     
-    // Update label text
-    const secsRemaining = ((resCooldwn - resElapsed) / 1000).toFixed(1);
+    const secsRemaining = ((effectiveResCd - resElapsed) / 1000).toFixed(1);
     elCooldownTimer.textContent = `데미지: 100 | 쿨다운 중 (${secsRemaining}s)`;
     elCooldownTimer.style.color = 'var(--color-cyan)';
     document.getElementById('weapon-resignation').classList.add('cooling-down');
@@ -700,13 +845,15 @@ function updateCooldownsUI() {
     document.getElementById('weapon-resignation').classList.remove('cooling-down');
   }
 
-  // Visual filters on other cooldowns
+  // Visual opacity filters on hammer & coffee cooldowns
   const weapons = ['hammer', 'coffee'];
   weapons.forEach(wName => {
     const card = document.getElementById(`weapon-${wName}`);
     const elapsed = now - lastUsed[wName];
-    const cd = WEAPONS[wName].cooldown;
-    if (elapsed < cd) {
+    let coeff = Math.pow(0.85, weaponUpgrades[wName] - 1);
+    let cd = Math.max(80, Math.round(WEAPONS[wName].cooldown * coeff));
+
+    if (elapsed < cd && !isFeverMode) {
       card.style.opacity = 0.55;
     } else {
       card.style.opacity = 1.0;
@@ -720,12 +867,16 @@ function updateCooldownsUI() {
 function decayStats() {
   const now = Date.now();
   if (now - lastHitTime > 3000) {
-    // Reset combo after 2 seconds
     if (comboCount > 0 && now - lastHitTime > 2000) {
       comboCount = 0;
       elComboCount.textContent = 0;
+      
+      // End Fever mode when combo drops to 0
+      if (isFeverMode) {
+        deactivateFever();
+        showToast("피버 타임이 종료되었습니다.");
+      }
     }
-    // Smooth heart rate decay
     if (heartRate > 80) {
       heartRate = Math.max(80, heartRate - 0.2);
       elHeartRate.textContent = Math.round(heartRate) + " BPM";
@@ -743,8 +894,13 @@ function triggerVictory() {
   // Set game mode to victory
   setGameState(STATE_VICTORY);
 
-  // Set dizzy boss
-  elBossImage.src = 'assets/boss_dizzy.png';
+  // Set dizzy boss face
+  if (bossInfo.customImg) {
+    elBossImage.src = bossInfo.customImg;
+    elBossImage.style.filter = 'grayscale(0.5) sepia(0.5) rotate(10deg)';
+  } else {
+    elBossImage.src = 'assets/boss_dizzy.png';
+  }
   elBossAvatarWrapper.classList.add('dizzy');
   
   // Set speech bubble content & force show
@@ -772,6 +928,10 @@ function resetGame() {
   comboCount = 0;
   maxCombo = 0;
   heartRate = 80;
+  stressPoints = 0;
+  isFeverMode = false;
+  weaponUpgrades = { paper: 1, hammer: 1, coffee: 1, resignation: 1 };
+  
   particles.forEach(p => {
     if (p.element && p.element.parentNode) p.element.parentNode.removeChild(p.element);
   });
@@ -859,3 +1019,19 @@ function initBgParticles() {
     container.appendChild(p);
   }
 }
+
+/**
+ * Legal Modal overlays toggle helpers
+ */
+function openModal(id) {
+  playChirp(700, 0.08);
+  const modal = document.getElementById(id);
+  if (modal) modal.style.display = 'flex';
+}
+function closeModal(id) {
+  playChirp(400, 0.08);
+  const modal = document.getElementById(id);
+  if (modal) modal.style.display = 'none';
+}
+window.openModal = openModal;
+window.closeModal = closeModal;
