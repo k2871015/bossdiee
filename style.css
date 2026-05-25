@@ -1287,3 +1287,98 @@ body.hp-phase-danger .boss-avatar-wrapper {
   width: 100%;
   transition: width linear;
 }
+
+/* Workplace Stress Guide Styles */
+.stress-guide-section {
+  margin-top: 3rem;
+  padding: 3rem;
+}
+.guide-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+.guide-header h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+  color: #fff;
+}
+.guide-header p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+.guide-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  background: rgba(0, 210, 211, 0.1);
+  border: 1px solid var(--color-cyan);
+  color: var(--color-cyan);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+}
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+.guide-card {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 2rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.guide-card:hover {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(226, 201, 116, 0.2);
+  transform: translateY(-5px);
+}
+.guide-card-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+.guide-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-gold);
+  margin-bottom: 0.8rem;
+}
+.guide-card p {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin-bottom: 1.2rem;
+}
+.guide-list {
+  list-style: none;
+  padding-left: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+.guide-list li {
+  position: relative;
+  padding-left: 1.2rem;
+  margin-bottom: 0.6rem;
+  line-height: 1.5;
+}
+.guide-list li::before {
+  content: '▪';
+  position: absolute;
+  left: 0;
+  color: var(--color-cyan);
+}
+.guide-list strong {
+  color: var(--color-gold);
+}
+
+@media (max-width: 768px) {
+  .stress-guide-section {
+    padding: 1.5rem;
+  }
+}
