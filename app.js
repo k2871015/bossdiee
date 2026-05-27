@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Boss Stress Buster Web Game - Core Logic (AdSense & Feature Upgraded)
  */
 
@@ -263,6 +263,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Start game loops for physics and cooldowns
   startLoop();
+
+  // --- Cookie Consent Checker ---
+  const consent = localStorage.getItem('cookie-consent');
+  const banner = document.getElementById('cookie-banner');
+  if (consent === 'accepted' && banner) {
+    banner.style.display = 'none';
+  } else if (banner) {
+    banner.style.display = 'flex';
+  }
 });
 
 /**
@@ -1363,4 +1372,17 @@ function showEventPopup(evt) {
     }
   }, evt.duration);
 }
+
+// Global function for Cookie Accept button
+window.acceptCookies = function() {
+  localStorage.setItem('cookie-consent', 'accepted');
+  const banner = document.getElementById('cookie-banner');
+  if (banner) {
+    banner.style.opacity = '0';
+    setTimeout(() => {
+      banner.style.display = 'none';
+    }, 300);
+  }
+};
+
 

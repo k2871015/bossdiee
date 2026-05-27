@@ -21,6 +21,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
 </head>
 <body class="customizing-mode">
+  <!-- Cookie Consent Banner -->
+  <div class="cookie-banner" id="cookie-banner" style="display: none;">
+    <p>본 사이트는 맞춤형 광고 제공을 위해 쿠키를 사용합니다. 서비스를 계속 이용함으로써 <a href="privacy.html">개인정보처리방침</a>에 동의하게 됩니다.</p>
+    <button id="cookie-accept-btn" onclick="acceptCookies()">동의함</button>
+  </div>
 
   <!-- Floating particles background -->
   <div class="particles" id="particles-container"></div>
@@ -33,6 +38,7 @@
         STRESS BUSTER
       </div>
       <div class="header-actions">
+        <button class="icon-btn" id="contact-toggle-btn">✉️ 문의하기</button>
         <button class="icon-btn" id="bgm-toggle-btn">🔇 BGM 끔</button>
         <button class="icon-btn" id="edit-boss-btn" style="display: none;">⚙️ 상사님 재설정</button>
       </div>
@@ -369,9 +375,105 @@
         <a href="privacy.html">개인정보처리방침</a>
         <span class="footer-divider">|</span>
         <a href="terms.html">이용약관</a>
+        <span class="footer-divider">|</span>
+        <a href="#" id="footer-contact-link">문의하기</a>
       </div>
     </div>
   </footer>
+
+  <!-- Contact Sidebar & Overlay -->
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div id="contact-sidebar" class="contact-sidebar">
+    <div class="sidebar-header">
+      <h2>✉️ 건의 및 문의하기</h2>
+      <button id="sidebar-close-btn" class="sidebar-close-btn">&times;</button>
+    </div>
+    <p style="font-size: 0.82rem; color: rgba(255, 255, 255, 0.6); margin-bottom: 1.5rem; line-height: 1.6;">
+      상사님 격파 게임에 대해 버그 제보, 추가 기능 제안, 혹은 기타 문의 사항이 있으시면 아래 양식을 통해 보내주세요.
+    </p>
+    <form id="contact-form" class="contact-form">
+      <div class="form-group">
+        <label for="contact-name">이름 / 닉네임</label>
+        <input type="text" id="contact-name" name="name" data-fs-field placeholder="이름을 입력해주세요" autocomplete="name" />
+        <span class="error-message" data-fs-error="name"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="contact-email">이메일 주소</label>
+        <input type="email" id="contact-email" name="email" data-fs-field placeholder="답변을 받으실 이메일을 입력해주세요" autocomplete="email" required />
+        <span class="error-message" data-fs-error="email"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="contact-topic">문의 종류</label>
+        <div class="select-wrap">
+          <select id="contact-topic" name="topic" data-fs-field>
+            <option value="Bug Report">오류 제보 (버그)</option>
+            <option value="Feature Request">기능 건의</option>
+            <option value="General Inquiry">일반 문의</option>
+            <option value="Other">기타</option>
+          </select>
+        </div>
+        <span class="error-message" data-fs-error="topic"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="contact-message">문의 내용</label>
+        <textarea id="contact-message" name="message" data-fs-field placeholder="문의하실 내용을 입력해주세요" required></textarea>
+        <span class="error-message" data-fs-error="message"></span>
+      </div>
+
+      <div class="form-messages">
+        <div class="form-success-container" data-fs-success>
+          🎉 문의가 성공적으로 전송되었습니다! 보내주신 내용을 검토 후 신속히 메일로 답변드리겠습니다.
+        </div>
+        <div class="form-error-container" data-fs-error>
+          ❌ 전송에 실패했습니다. 입력한 항목을 다시 확인하고 시도해주세요.
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" data-fs-submit-btn>
+        문의 보내기
+      </button>
+    </form>
+  </div>
+
+  <!-- Formspree & Sidebar Script -->
+  <script>
+    window.formspree = window.formspree || function () { (formspree.q = formspree.q || []).push(arguments); };
+    formspree('initForm', { formElement: '#contact-form', formId: 'mdajyapq' });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const openBtns = [
+        document.getElementById('contact-toggle-btn'),
+        document.getElementById('footer-contact-link')
+      ];
+      const closeBtn = document.getElementById('sidebar-close-btn');
+      const overlay = document.getElementById('sidebar-overlay');
+      const sidebar = document.getElementById('contact-sidebar');
+
+      function openSidebar(e) {
+        if (e) e.preventDefault();
+        sidebar.classList.add('active');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeSidebar() {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+
+      openBtns.forEach(btn => {
+        if (btn) btn.addEventListener('click', openSidebar);
+      });
+
+      if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+      if (overlay) overlay.addEventListener('click', closeSidebar);
+    });
+  </script>
+  <script src="https://unpkg.com/@formspree/ajax@1" defer></script>
 
   <!-- Privacy Modal -->
   <div class="modal-overlay" id="privacy-modal" style="display: none;">
