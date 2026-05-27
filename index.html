@@ -391,23 +391,23 @@
     <p style="font-size: 0.82rem; color: rgba(255, 255, 255, 0.6); margin-bottom: 1.5rem; line-height: 1.6;">
       상사님 격파 게임에 대해 버그 제보, 추가 기능 제안, 혹은 기타 문의 사항이 있으시면 아래 양식을 통해 보내주세요.
     </p>
-    <form id="contact-form" class="contact-form">
+    <form id="contact-form" class="contact-form" action="https://formspree.io/f/mdajyapq" method="POST">
       <div class="form-group">
         <label for="contact-name">이름 / 닉네임</label>
-        <input type="text" id="contact-name" name="name" data-fs-field placeholder="이름을 입력해주세요" autocomplete="name" />
+        <input type="text" id="contact-name" name="name" placeholder="이름을 입력해주세요" autocomplete="name" />
         <span class="error-message" data-fs-error="name"></span>
       </div>
 
       <div class="form-group">
         <label for="contact-email">이메일 주소</label>
-        <input type="email" id="contact-email" name="email" data-fs-field placeholder="답변을 받으실 이메일을 입력해주세요" autocomplete="email" required />
+        <input type="email" id="contact-email" name="email" placeholder="답변을 받으실 이메일을 입력해주세요" autocomplete="email" required />
         <span class="error-message" data-fs-error="email"></span>
       </div>
 
       <div class="form-group">
         <label for="contact-topic">문의 종류</label>
         <div class="select-wrap">
-          <select id="contact-topic" name="topic" data-fs-field>
+          <select id="contact-topic" name="topic">
             <option value="Bug Report">오류 제보 (버그)</option>
             <option value="Feature Request">기능 건의</option>
             <option value="General Inquiry">일반 문의</option>
@@ -419,20 +419,20 @@
 
       <div class="form-group">
         <label for="contact-message">문의 내용</label>
-        <textarea id="contact-message" name="message" data-fs-field placeholder="문의하실 내용을 입력해주세요" required></textarea>
+        <textarea id="contact-message" name="message" placeholder="문의하실 내용을 입력해주세요" required></textarea>
         <span class="error-message" data-fs-error="message"></span>
       </div>
 
       <div class="form-messages">
-        <div class="form-success-container" data-fs-success>
+        <div class="form-success-container" id="contact-success-msg" style="display: none; padding: 0.8rem; border-radius: 8px; background: rgba(52, 211, 153, 0.1); border: 1px solid var(--green); color: var(--green); margin-bottom: 1rem; font-size: 0.85rem;">
           🎉 문의가 성공적으로 전송되었습니다! 보내주신 내용을 검토 후 신속히 메일로 답변드리겠습니다.
         </div>
-        <div class="form-error-container" data-fs-error>
+        <div class="form-error-container" id="contact-error-msg" style="display: none; padding: 0.8rem; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--coral); color: var(--coral); margin-bottom: 1rem; font-size: 0.85rem;">
           ❌ 전송에 실패했습니다. 입력한 항목을 다시 확인하고 시도해주세요.
         </div>
       </div>
 
-      <button type="submit" class="submit-btn" data-fs-submit-btn>
+      <button type="submit" class="submit-btn">
         문의 보내기
       </button>
     </form>
@@ -440,9 +440,6 @@
 
   <!-- Formspree & Sidebar Script -->
   <script>
-    window.formspree = window.formspree || function () { (formspree.q = formspree.q || []).push(arguments); };
-    formspree('initForm', { formElement: '#contact-form', formId: 'mdajyapq' });
-
     document.addEventListener('DOMContentLoaded', () => {
       const openBtns = [
         document.getElementById('contact-toggle-btn'),
@@ -451,6 +448,7 @@
       const closeBtn = document.getElementById('sidebar-close-btn');
       const overlay = document.getElementById('sidebar-overlay');
       const sidebar = document.getElementById('contact-sidebar');
+      const contactForm = document.getElementById('contact-form');
 
       function openSidebar(e) {
         if (e) e.preventDefault();
@@ -463,6 +461,10 @@
         sidebar.classList.remove('active');
         overlay.classList.remove('active');
         document.body.style.overflow = '';
+        // Clear message states
+        document.getElementById('contact-success-msg').style.display = 'none';
+        document.getElementById('contact-error-msg').style.display = 'none';
+        contactForm.querySelectorAll('.error-message').forEach(el => el.textContent = '');
       }
 
       openBtns.forEach(btn => {
@@ -471,9 +473,72 @@
 
       if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
       if (overlay) overlay.addEventListener('click', closeSidebar);
+
+      // Handle Hash URL to auto-open sidebar (e.g. index.html#contact)
+      function checkHash() {
+        if (window.location.hash === '#contact') {
+          openSidebar();
+          history.replaceState(null, null, ' ');
+        }
+      }
+      window.addEventListener('hashchange', checkHash);
+      checkHash();
+
+      // Native Fetch submission
+      if (contactForm) {
+        contactForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          const submitBtn = contactForm.querySelector('.submit-btn');
+          const successMsg = document.getElementById('contact-success-msg');
+          const errorMsg = document.getElementById('contact-error-msg');
+          
+          successMsg.style.display = 'none';
+          errorMsg.style.display = 'none';
+          contactForm.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+          
+          const originalText = submitBtn.textContent;
+          submitBtn.disabled = true;
+          submitBtn.textContent = '전송 중...';
+          
+          const formData = new FormData(contactForm);
+          
+          try {
+            const response = await fetch(contactForm.action, {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'Accept': 'application/json'
+              }
+            });
+            
+            if (response.ok) {
+              successMsg.style.display = 'block';
+              contactForm.reset();
+              setTimeout(closeSidebar, 3500);
+            } else {
+              const result = await response.json();
+              if (result.errors) {
+                result.errors.forEach(err => {
+                  const errSpan = contactForm.querySelector(`[data-fs-error="${err.field}"]`);
+                  if (errSpan) {
+                    errSpan.textContent = err.message;
+                  }
+                });
+              }
+              errorMsg.style.display = 'block';
+            }
+          } catch (err) {
+            console.error('Submission error:', err);
+            errorMsg.style.display = 'block';
+          } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+          }
+        });
+      }
     });
   </script>
-  <script src="https://unpkg.com/@formspree/ajax@1" defer></script>
 
   <!-- Privacy Modal -->
   <div class="modal-overlay" id="privacy-modal" style="display: none;">
